@@ -1,5 +1,14 @@
 # iwords
 
+## backend start
+```
+npm install express node-fetch cors
+
+node backend/tts-proxy.js
+```
+
+
+
 This template should help get you started developing with Vue 3 in Vite.
 
 ## Recommended IDE Setup

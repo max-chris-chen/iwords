@@ -1,44 +1,48 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref } from 'vue'
 
-// TTS Service interface
-interface TTSService {
-  getAudioUrl(text: string): Promise<string>;
-}
-
-// Youdao TTS implementation (default)
-class YoudaoTTS implements TTSService {
+const ttsService = {
   async getAudioUrl(text: string): Promise<string> {
-    // Youdao TTS API (public, for demo; production should use server proxy)
-    // Example: http://dict.youdao.com/dictvoice?audio=hello&type=2
-    return `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(text)}&type=2`;
-  }
+    const response = await fetch('/api/tts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text
+      }),
+    })
+    if (!response.ok) throw new Error('TTS proxy failed')
+    const data = await response.json()
+    if (data.audioUrl) {
+      return data.audioUrl
+    } else if (data.audio_data && data.audio_format) {
+      return `data:audio/${data.audio_format};base64,${data.audio_data}`
+    } else {
+      throw new Error('No audio data returned')
+    }
+  },
 }
-
-// Service registry for extensibility
-const ttsServices: Record<string, TTSService> = {
-  youdao: new YoudaoTTS(),
-  // baidu: new BaiduTTS(),
-  // xunfei: new XunfeiTTS(),
-};
 
 const props = defineProps<{
-  text: string;
-  service?: 'youdao' | 'baidu' | 'xunfei';
-}>();
+  text: string
+}>()
 
-const audio = ref<HTMLAudioElement | null>(null);
-const loading = ref(false);
+const audio = ref<HTMLAudioElement | null>(null)
+const loading = ref(false)
 
 async function play() {
-  loading.value = true;
-  const service = ttsServices[props.service || 'youdao'];
-  const url = await service.getAudioUrl(props.text);
-  if (audio.value) {
-    audio.value.src = url;
-    audio.value.play();
+  loading.value = true
+  try {
+    const url = await ttsService.getAudioUrl(props.text)
+    if (audio.value) {
+      audio.value.src = url
+      audio.value.play()
+    }
+  } catch (e) {
+    console.error(e)
   }
-  loading.value = false;
+  loading.value = false
 }
 </script>
 
