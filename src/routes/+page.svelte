@@ -1,9 +1,9 @@
 <script lang="ts">
-  let text = '';
+  let text = "";
   let playing = false;
   let audio: HTMLAudioElement | null = null;
-  let audioData = '';
-  let audioFormat = '';
+  let audioData = "";
+  let audioFormat = "";
   let speechMarks: any = null;
   let currentWordIdx = -1;
   let words: any[] = [];
@@ -11,16 +11,16 @@
 
   async function synthesize() {
     playing = false;
-    audioData = '';
-    audioFormat = '';
+    audioData = "";
+    audioFormat = "";
     speechMarks = null;
     currentWordIdx = -1;
     words = [];
     if (!text.trim()) return;
-    const res = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text })
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
     });
     const data = await res.json();
     if (data.audio_data) {
@@ -47,7 +47,10 @@
         // Corrected time calculation: audio.currentTime is already the effective time
         // on the 1.0x speed timeline. Convert to milliseconds.
         const effectiveTimeMs = audio!.currentTime * 1000;
-        let idx = words.findIndex(w => effectiveTimeMs >= w.start_time && effectiveTimeMs < w.end_time);
+        let idx = words.findIndex(
+          (w) =>
+            effectiveTimeMs >= w.start_time && effectiveTimeMs < w.end_time,
+        );
         if (idx !== -1 && idx !== currentWordIdx) {
           currentWordIdx = idx;
         }
@@ -68,19 +71,9 @@
   }
 </script>
 
-<style>
-/* 简洁基础样式 */
-.word {
-  transition: background 0.2s;
-  padding: 0 2px;
-}
-.word.active {
-  background: yellow;
-}
-</style>
-
 <div>
-  <textarea bind:value={text} rows="4" cols="50" placeholder="Enter text..."></textarea>
+  <textarea bind:value={text} rows="4" cols="50" placeholder="Enter text..."
+  ></textarea>
   <div style="margin: 10px 0;">
     <label for="speed">播放速度: </label>
     <select id="speed" bind:value={speed} on:change={updatePlaybackSpeed}>
@@ -100,10 +93,23 @@
   <div style="margin-top:1em;font-size:1.2em">
     {#if words.length}
       {#each words as w, i}
-        <span class="word {i === currentWordIdx ? 'active' : ''}">{text.slice(w.start, w.end)}</span>
+        <span class="word {i === currentWordIdx ? 'active' : ''}"
+          >{text.slice(w.start, w.end)}</span
+        >
       {/each}
     {:else}
       {text}
     {/if}
   </div>
 {/if}
+
+<style>
+  /* 简洁基础样式 */
+  .word {
+    transition: background 0.2s;
+    padding: 0 2px;
+  }
+  .word.active {
+    background: yellow;
+  }
+</style>

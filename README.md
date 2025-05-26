@@ -91,11 +91,11 @@ You can preview the production build with `pnpm run preview`.
 
 The application uses the following server-side API routes:
 
--   `POST /api/tts`: Handles text-to-speech synthesis requests.
-    -   Expects a JSON body with `text` (string, required) and optionally `voice` (string) and `output_format` (string).
-    -   Returns synthesized audio data and speech marks.
--   `GET /api/voices`: Fetches the list of available voices from the Speechify API.
--   `GET /api/debug-env`: (If created for debugging) - typically used to check environment variables on the server.
+- `POST /api/tts`: Handles text-to-speech synthesis requests.
+  - Expects a JSON body with `text` (string, required) and optionally `voice` (string) and `output_format` (string).
+  - Returns synthesized audio data and speech marks.
+- `GET /api/voices`: Fetches the list of available voices from the Speechify API.
+- `GET /api/debug-env`: (If created for debugging) - typically used to check environment variables on the server.
 
 ---
 
