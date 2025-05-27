@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+
   let text = "";
   let playing = false;
   let audio: HTMLAudioElement | null = null;
@@ -8,6 +10,22 @@
   let currentWordIdx = -1;
   let words: any[] = [];
   let speed = 1.0;
+
+  // 用户登录状态
+  let user: any = null;
+  let loadingUser = true;
+  let loginError = "";
+  let registerError = "";
+  let registerSuccess = "";
+
+  // 登录表单
+  let loginUsername = "";
+  let loginPassword = "";
+  // 注册表单
+  let regUsername = "";
+  let regEmail = "";
+  let regPhone = "";
+  let regPassword = "";
 
   async function synthesize() {
     playing = false;
@@ -69,38 +87,138 @@
       audio.playbackRate = speed;
     }
   }
+
+  // 获取当前登录用户
+  async function fetchUser() {
+    loadingUser = true;
+    try {
+      const res = await fetch("/api/users/me");
+      if (res.ok) {
+        const data = await res.json();
+        user = data.user;
+      } else {
+        user = null;
+      }
+    } catch {
+      user = null;
+    }
+    loadingUser = false;
+  }
+  onMount(fetchUser);
+
+  // 登录
+  async function login() {
+    loginError = "";
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: loginUsername,
+        password: loginPassword,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      user = data.user;
+      await fetchUser();
+    } else {
+      loginError = data.error || "登录失败";
+    }
+  }
+  // 注册
+  async function register() {
+    registerError = "";
+    registerSuccess = "";
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: regUsername,
+        email: regEmail,
+        phone: regPhone,
+        password: regPassword,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      registerSuccess = "注册成功，请登录";
+      regUsername = regEmail = regPhone = regPassword = "";
+    } else {
+      registerError = data.error || "注册失败";
+    }
+  }
+  // 登出
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    user = null;
+    await fetchUser();
+  }
+
+  // 未登录时不再自动跳转到 /login，仅提示
+  // $: if (!loadingUser && !user) {
+  //   goto('/login');
+  // }
 </script>
 
-<div>
-  <textarea bind:value={text} rows="4" cols="50" placeholder="Enter text..."
-  ></textarea>
-  <div style="margin: 10px 0;">
-    <label for="speed">播放速度: </label>
-    <select id="speed" bind:value={speed} on:change={updatePlaybackSpeed}>
-      <option value={0.5}>0.5x (慢)</option>
-      <option value={0.75}>0.75x</option>
-      <option value={1.0}>1.0x (正常)</option>
-      <option value={1.25}>1.25x</option>
-      <option value={1.5}>1.5x (快)</option>
-      <option value={2.0}>2.0x (很快)</option>
-    </select>
+{#if loadingUser}
+  <div>正在加载用户信息...</div>
+{:else if !user}
+  <div style="margin:2em 0;max-width:400px">
+    <div style="color: #888; text-align: center;">请先登录后使用本功能</div>
+    <div style="margin-top:1em; text-align:center;">
+      <a href="/login" style="color: #1976d2; text-decoration: underline;"
+        >前往登录</a
+      >
+      或
+      <a href="/register" style="color: #1976d2; text-decoration: underline;"
+        >注册新账号</a
+      >
+    </div>
   </div>
-  <button on:click={synthesize} disabled={!text.trim() || playing}>合成</button>
-  <button on:click={play} disabled={!audioData || playing}>播放</button>
-</div>
-
-{#if text}
-  <div style="margin-top:1em;font-size:1.2em">
-    {#if words.length}
-      {#each words as w, i}
-        <span class="word {i === currentWordIdx ? 'active' : ''}"
-          >{text.slice(w.start, w.end)}</span
-        >
-      {/each}
-    {:else}
-      {text}
+{:else}
+  <div style="margin:2em 0;max-width:400px">
+    <div>欢迎，{user.username || user.nickname}！</div>
+    {#if user.avatarUrl}
+      <img
+        src={user.avatarUrl}
+        alt="avatar"
+        style="width:48px;height:48px;border-radius:50%"
+      />
     {/if}
+    <button on:click={logout}>登出</button>
   </div>
+  <div>
+    <textarea bind:value={text} rows="4" cols="50" placeholder="Enter text..."
+    ></textarea>
+    <div style="margin: 10px 0;">
+      <label for="speed">播放速度: </label>
+      <select id="speed" bind:value={speed} on:change={updatePlaybackSpeed}>
+        <option value={0.5}>0.5x (慢)</option>
+        <option value={0.75}>0.75x</option>
+        <option value={1.0}>1.0x (正常)</option>
+        <option value={1.25}>1.25x</option>
+        <option value={1.5}>1.5x (快)</option>
+        <option value={2.0}>2.0x (很快)</option>
+      </select>
+    </div>
+    <button on:click={synthesize} disabled={!text.trim() || playing}
+      >合成</button
+    >
+    <button on:click={play} disabled={!audioData || playing}>播放</button>
+  </div>
+  {#if text}
+    <div style="margin-top:1em;font-size:1.2em">
+      {#if words.length}
+        {#each words as w, i}
+          <span class="word {i === currentWordIdx ? 'active' : ''}"
+            >{text.slice(w.start, w.end)}</span
+          >
+        {/each}
+      {:else}
+        {text}
+      {/if}
+    </div>
+  {/if}
 {/if}
 
 <style>

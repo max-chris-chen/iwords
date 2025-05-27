@@ -20,7 +20,7 @@ export async function connectToDatabase(): Promise<{
 
   const client = new MongoClient(MONGODB_URI);
   await client.connect();
-  const db = client.db(); // You can specify your DB name here, e.g., client.db("myAppDb")
+  const db = client.db("iwords");
 
   cachedClient = client;
   cachedDb = db;
