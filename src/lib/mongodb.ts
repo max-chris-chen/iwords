@@ -10,6 +10,18 @@ if (!MONGODB_URI) {
 let cachedClient: MongoClient | null = null;
 let cachedDb: Db | null = null;
 
+export async function getDb(): Promise<Db> {
+  if (cachedDb) {
+    return cachedDb;
+  }
+  const client = new MongoClient(MONGODB_URI);
+  await client.connect();
+  const db = client.db("iwords");
+  cachedClient = client;
+  cachedDb = db;
+  return db;
+}
+
 export async function connectToDatabase(): Promise<{
   client: MongoClient;
   db: Db;
@@ -17,13 +29,10 @@ export async function connectToDatabase(): Promise<{
   if (cachedClient && cachedDb) {
     return { client: cachedClient, db: cachedDb };
   }
-
   const client = new MongoClient(MONGODB_URI);
   await client.connect();
   const db = client.db("iwords");
-
   cachedClient = client;
   cachedDb = db;
-
   return { client, db };
 }
