@@ -46,7 +46,7 @@
     <tbody>
       {#each courses as course}
         <tr>
-          <td>{course.title}</td>
+          <td><a href={`/courses/${course._id}`}>{course.title}</a></td>
           <td>{course.description}</td>
           <td>{course.status}</td>
           <td>{new Date(course.createdAt).toLocaleString()}</td>
