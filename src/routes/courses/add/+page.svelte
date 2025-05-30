@@ -32,62 +32,52 @@
   }
 </script>
 
-<h1>Add Course</h1>
-<form class="course-form" on:submit|preventDefault={addCourse}>
-  <table>
-    <tbody>
-      <tr>
-        <td><label for="title">Title</label></td>
-        <td><input id="title" bind:value={title} required /></td>
-      </tr>
-      <tr>
-        <td><label for="coverImage">Cover Image URL</label></td>
-        <td><input id="coverImage" bind:value={coverImage} /></td>
-      </tr>
-      <tr>
-        <td><label for="description">Description</label></td>
-        <td><textarea id="description" bind:value={description}></textarea></td>
-      </tr>
-      <tr>
-        <td><label for="isPublic">Public</label></td>
-        <td><input id="isPublic" type="checkbox" bind:checked={isPublic} /></td>
-      </tr>
-      <tr>
-        <td colspan="2" style="text-align:center; padding-top:10px;">
-          <button type="submit" disabled={loading}
-            >{loading ? "Saving..." : "Add Course"}</button
-          >
-        </td>
-      </tr>
-      {#if error}
-        <tr><td colspan="2"><div style="color:red">{error}</div></td></tr>
-      {/if}
-    </tbody>
-  </table>
-</form>
+<h1 class="text-3xl font-extrabold text-center mb-8 mt-8 tracking-tight text-primary-700">
+  Add Course
+</h1>
+<div class="max-w-xl mx-auto bg-white rounded-2xl p-8">
+  <form class="space-y-6" on:submit|preventDefault={addCourse}>
+    <div>
+      <label for="title" class="block mb-1 font-semibold text-gray-700">Title<span class="text-red-500">*</span></label>
+      <input id="title" bind:value={title} required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:outline-none" />
+    </div>
+    <div>
+      <label for="coverImage" class="block mb-1 font-semibold text-gray-700">Cover Image URL</label>
+      <input id="coverImage" bind:value={coverImage} class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:outline-none" />
+    </div>
+    <div>
+      <label for="description" class="block mb-1 font-semibold text-gray-700">Description</label>
+      <textarea id="description" bind:value={description} class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:outline-none min-h-[120px]" />
+    </div>
+    <div class="flex items-center gap-2">
+      <input id="isPublic" type="checkbox" bind:checked={isPublic} class="accent-blue-600 w-5 h-5" />
+      <label for="isPublic" class="font-semibold text-gray-700">Public</label>
+    </div>
+    {#if error}
+      <div class="text-red-600 text-center font-medium">{error}</div>
+    {/if}
+    <button
+      type="submit"
+      disabled={loading}
+      class="add-course-btn flex items-center gap-2 px-6 py-2 font-semibold rounded-lg border border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-full justify-center mt-4"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+      {loading ? "Saving..." : "Add Course"}
+    </button>
+  </form>
+</div>
 
 <style>
-  .course-form table {
-    margin: 0 auto;
-    border-collapse: separate;
-    border-spacing: 10px 8px;
-  }
-  .course-form td {
-    vertical-align: middle;
-    padding: 4px 8px;
-  }
-  .course-form input[type="text"],
-  .course-form input[type="url"],
-  .course-form textarea {
-    width: 260px;
-    padding: 4px;
-    font-size: 1em;
-  }
-  .course-form textarea {
-    resize: vertical;
-    min-height: 180px;
-    height: 180px;
-    width: 400px;
-    font-size: 1.1em;
-  }
+.add-course-btn {
+  background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%) !important;
+  color: #fff !important;
+  opacity: 1 !important;
+  border: 1px solid #2563eb;
+  transition: background 0.2s;
+}
+.add-course-btn:hover {
+  background: linear-gradient(90deg, #1d4ed8 0%, #2563eb 100%) !important;
+}
 </style>
