@@ -108,6 +108,38 @@ export const PUT: RequestHandler = async ({ params, locals, request }) => {
       return new Response("Not found", { status: 404 });
     }
     const body = await request.json();
+    // Section update
+    if (body.sectionId && typeof body.title === 'string') {
+      const sectionObjectId = new ObjectId(body.sectionId);
+      const result = await db.collection("courses").updateOne(
+        { _id: courseId, "sections._id": sectionObjectId },
+        { $set: { "sections.$.title": body.title } }
+      );
+      if (result.modifiedCount === 1) {
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      } else {
+        return new Response("Section not found or not updated", { status: 404 });
+      }
+    }
+    // Section delete
+    if (body.deleteSectionId) {
+      const sectionObjectId = new ObjectId(body.deleteSectionId);
+      const result = await db.collection("courses").updateOne(
+        { _id: courseId, user: locals.user._id },
+        { $pull: { sections: { _id: sectionObjectId } } }
+      );
+      if (result.modifiedCount === 1) {
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      } else {
+        return new Response("Section not found or not deleted", { status: 404 });
+      }
+    }
     const update: any = {};
     if (typeof body.title === 'string') update.title = body.title;
     if (typeof body.coverImage === 'string') update.coverImage = body.coverImage;

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/stores";
+  import AddSectionModal from '$lib/AddSectionModal.svelte';
   import { onMount } from "svelte";
   import { get } from "svelte/store";
 
@@ -17,6 +18,80 @@
   let newLessonTitle = "";
   let newLessonContent = "";
   let lessonError = "";
+
+  // UI state for editing section/lesson
+  let editingSectionId: string | null = null;
+  let editingSectionTitle = "";
+  let editingLessonId: string | null = null;
+  let editingLessonTitle = "";
+  let editingLessonContent = "";
+  let actionLoading = false;
+  let actionMessage = "";
+
+  // UI state for section modal
+  let showSectionModal = false;
+  let showEditSectionModal = false;
+  let editSectionId: string | null = null;
+  let editSectionTitle = "";
+
+  function openSectionModal() {
+    showSectionModal = true;
+    newSectionTitle = "";
+    sectionError = "";
+  }
+  function closeSectionModal() {
+    showSectionModal = false;
+    newSectionTitle = "";
+    sectionError = "";
+  }
+  async function handleAddSection() {
+    sectionError = "";
+    if (!newSectionTitle.trim()) {
+      sectionError = "Section title required";
+      return;
+    }
+    await addSection();
+    if (!sectionError) {
+      closeSectionModal();
+    }
+  }
+
+  function openEditSectionModal(section) {
+    showEditSectionModal = true;
+    editSectionId = section._id;
+    editSectionTitle = section.title;
+    sectionError = "";
+  }
+  function closeEditSectionModal() {
+    showEditSectionModal = false;
+    editSectionId = null;
+    editSectionTitle = "";
+    sectionError = "";
+  }
+  async function handleEditSection(e) {
+    sectionError = "";
+    if (!editSectionTitle.trim()) {
+      sectionError = "Section title required";
+      return;
+    }
+    actionLoading = true;
+    const id = get(page).params.id;
+    // 正确的API路径应为 /api/courses/:id，body中带sectionId
+    const res = await fetch(`/api/courses/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sectionId: editSectionId, title: editSectionTitle }),
+    });
+    if (!res.ok) {
+      sectionError = await res.text();
+    } else {
+      showEditSectionModal = false;
+      editSectionId = null;
+      editSectionTitle = "";
+      await fetchCourse();
+    }
+    actionLoading = false;
+  }
 
   async function fetchCourse() {
     loading = true;
@@ -80,6 +155,90 @@
     addingLessonSectionId = null;
     await fetchCourse();
   }
+
+  async function deleteSection(sectionId: string) {
+    if (!confirm('确定要删除该 Section 吗？')) return;
+    actionLoading = true;
+    actionMessage = "";
+    const id = get(page).params.id;
+    const res = await fetch(`/api/courses/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deleteSectionId: sectionId }),
+    });
+    if (!res.ok) {
+      actionMessage = await res.text();
+    } else {
+      actionMessage = "Section deleted.";
+      await fetchCourse();
+    }
+    actionLoading = false;
+  }
+
+  async function startEditSection(section: any) {
+    editingSectionId = section._id;
+    editingSectionTitle = section.title;
+  }
+
+  async function saveEditSection(sectionId: string) {
+    actionLoading = true;
+    actionMessage = "";
+    const id = get(page).params.id;
+    const res = await fetch(`/api/courses/${id}/sections/${sectionId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: editingSectionTitle }),
+    });
+    if (!res.ok) {
+      actionMessage = await res.text();
+    } else {
+      actionMessage = "Section updated.";
+      editingSectionId = null;
+      await fetchCourse();
+    }
+    actionLoading = false;
+  }
+
+  async function deleteLesson(sectionId: string, lessonId: string) {
+    actionLoading = true;
+    actionMessage = "";
+    const id = get(page).params.id;
+    const res = await fetch(`/api/courses/${id}/sections/${sectionId}/lessons/${lessonId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      actionMessage = await res.text();
+    } else {
+      actionMessage = "Lesson deleted.";
+      await fetchCourse();
+    }
+    actionLoading = false;
+  }
+
+  async function startEditLesson(sectionId: string, lesson: any) {
+    editingLessonId = lesson._id;
+    editingLessonTitle = lesson.title;
+    editingLessonContent = lesson.content;
+  }
+
+  async function saveEditLesson(sectionId: string, lessonId: string) {
+    actionLoading = true;
+    actionMessage = "";
+    const id = get(page).params.id;
+    const res = await fetch(`/api/courses/${id}/sections/${sectionId}/lessons/${lessonId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: editingLessonTitle, content: editingLessonContent }),
+    });
+    if (!res.ok) {
+      actionMessage = await res.text();
+    } else {
+      actionMessage = "Lesson updated.";
+      editingLessonId = null;
+      await fetchCourse();
+    }
+    actionLoading = false;
+  }
 </script>
 
 {#if loading}
@@ -87,56 +246,84 @@
 {:else if error}
   <div style="color:red">{error}</div>
 {:else if course}
-  <h1><a href={location.pathname}>{course.title}</a></h1>
-  <p>{course.description}</p>
-  <h2>Sections</h2>
-  <button on:click={() => (addingSection = !addingSection)}>
-    {addingSection ? "Cancel" : "Add Section"}
-  </button>
-  {#if addingSection}
-    <div style="margin:1em 0;">
-      <input placeholder="Section title" bind:value={newSectionTitle} />
-      <button on:click={addSection}>Save</button>
-      {#if sectionError}
-        <span style="color:red">{sectionError}</span>
-      {/if}
-    </div>
+  <h1 class="course-title"><a href={location.pathname}>{course.title}</a></h1>
+  {#if actionMessage}
+    <div style="color:green">{actionMessage}</div>
   {/if}
+  <div class="sections-header">
+    <h2 class="sections-title">Sections</h2>
+    <span class="add-section-icon" title="Add Section" on:click={openSectionModal} tabindex="0" role="button" aria-label="Add Section">+</span>
+  </div>
+  <AddSectionModal
+    bind:open={showSectionModal}
+    title={newSectionTitle}
+    error={sectionError}
+    loading={actionLoading}
+    on:add={handleAddSection}
+    on:close={closeSectionModal}
+    bind:newTitle={newSectionTitle}
+    editMode={false}
+  />
+  <AddSectionModal
+    bind:open={showEditSectionModal}
+    error={sectionError}
+    loading={actionLoading}
+    on:edit={handleEditSection}
+    on:close={closeEditSectionModal}
+    bind:editTitle={editSectionTitle}
+    editMode={true}
+  />
   {#if course.sections?.length}
-    <ul>
+    <ul style="list-style:none;padding:0;">
       {#each course.sections as section}
-        <li>
-          <strong>{section.title}</strong>
+        <li class="section-card">
+          <div class="section-header">
+            <div class="section-title large">{section.title}</div>
+            <div class="section-actions">
+              <button on:click={() => openEditSectionModal(section)} style="margin-left:1em;">Edit</button>
+              <button on:click={() => deleteSection(section._id)} style="margin-left:0.5em;" aria-label="Delete section">Delete</button>
+            </div>
+          </div>
           <button
             on:click={() => (addingLessonSectionId = section._id)}
-            style="margin-left:1em;">Add Lesson</button
-          >
+            style="margin-left:1em;"
+            aria-label="Add lesson to section {section.title}">
+            Add Lesson
+          </button>
           {#if addingLessonSectionId === section._id}
-            <div style="margin:0.5em 0;">
-              <input placeholder="Lesson title" bind:value={newLessonTitle} />
-              <input
-                placeholder="Lesson content"
-                bind:value={newLessonContent}
-              />
-              <button on:click={() => addLesson(section._id)}>Save</button>
+            <div style="margin:0.5em 0;" class="input-row">
+              <input placeholder="Lesson title" bind:value={newLessonTitle} aria-label="Lesson title" />
+              <input placeholder="Lesson content" bind:value={newLessonContent} aria-label="Lesson content" />
+              <button on:click={() => addLesson(section._id)} disabled={actionLoading}>Save</button>
               <button
                 on:click={() => {
                   addingLessonSectionId = null;
                   newLessonTitle = "";
                   newLessonContent = "";
-                }}>Cancel</button
-              >
+                }}
+              >Cancel</button>
               {#if lessonError}
-                <span style="color:red">{lessonError}</span>
+                <span class="error">{lessonError}</span>
               {/if}
             </div>
           {/if}
           {#if section.lessons?.length}
-            <ul>
-              {#each section.lessons as lesson}
-                <li>{lesson.title}</li>
-              {/each}
-            </ul>
+            <div class="lesson-list">
+              <ul style="margin-top:0.5em;">
+                {#each section.lessons as lesson}
+                  <li class="lesson-item">
+                    <div>
+                      <span class="lesson-title">{lesson.title}</span>
+                      <span class="lesson-content">{lesson.content}</span>
+                    </div>
+                    <div class="lesson-actions">
+                      <button on:click={() => startEditLesson(section._id, lesson)} style="margin-left:1em;">Edit</button>
+                      <button on:click={() => deleteLesson(section._id, lesson._id)} style="margin-left:0.5em;" aria-label="Delete lesson">Delete</button>
+                    </div>
+                  </li>
+                {/each}
+              </ul>
+            </div>
           {/if}
         </li>
       {/each}
@@ -152,5 +339,144 @@
   }
   h2 {
     margin-top: 2em;
+  }
+  .course-title {
+    text-align: center;
+    margin-bottom: 1.2em;
+    font-size: 2.2em;
+    font-weight: bold;
+    color: #1e293b;
+  }
+  .sections-header {
+    display: flex;
+    align-items: center;
+    gap: 0.7em;
+    margin-bottom: 0.7em;
+  }
+  .sections-title {
+    font-size: 1.5em;
+    font-weight: 600;
+    color: #374151;
+    margin: 0;
+  }
+  .add-section-icon {
+    font-size: 2em;
+    color: #10b981;
+    cursor: pointer;
+    user-select: none;
+    margin-left: 0.2em;
+    transition: color 0.15s;
+    line-height: 1;
+    border-radius: 50%;
+    width: 1.3em;
+    height: 1.3em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .add-section-icon:hover, .add-section-icon:focus {
+    color: #059669;
+    background: #e0f2f1;
+    outline: none;
+  }
+  .section-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1.5em;
+    margin-bottom: 1.5em;
+    background: #f9fafb;
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.03);
+    transition: box-shadow 0.2s;
+  }
+  .section-card:hover {
+    box-shadow: 0 4px 16px 0 rgba(0,0,0,0.07);
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5em;
+  }
+  .section-title {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #374151;
+  }
+  .section-title.large {
+    font-size: 1.25em;
+    font-weight: 600;
+  }
+  .section-actions button,
+  .lesson-actions button {
+    margin-left: 0.5em;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 0.3em 0.8em;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .section-actions button:hover,
+  .lesson-actions button:hover {
+    background: #1d4ed8;
+  }
+  .lesson-list {
+    margin-top: 0.7em;
+    padding-left: 1.2em;
+  }
+  .lesson-item {
+    background: #fff;
+    border-radius: 6px;
+    padding: 0.7em 1em;
+    margin-bottom: 0.5em;
+    box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .lesson-title {
+    font-weight: 500;
+    color: #1e293b;
+  }
+  .lesson-content {
+    color: #64748b;
+    margin-left: 1em;
+    font-size: 0.98em;
+  }
+  .input-row {
+    display: flex;
+    gap: 0.7em;
+    margin-bottom: 0.7em;
+    align-items: center;
+  }
+  input[type="text"], input[type="search"] {
+    padding: 0.4em 0.7em;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 1em;
+    background: #fff;
+    color: #1e293b;
+    outline: none;
+    transition: border 0.15s;
+  }
+  input[type="text"]:focus, input[type="search"]:focus {
+    border: 1.5px solid #2563eb;
+  }
+  .feedback {
+    margin: 0.7em 0 0.5em 0;
+    color: #059669;
+    font-weight: 500;
+  }
+  .error {
+    color: #dc2626;
+    font-weight: 500;
+    margin-left: 0.5em;
+  }
+  .loading {
+    color: #2563eb;
+    font-style: italic;
+    margin: 1em 0;
   }
 </style>
