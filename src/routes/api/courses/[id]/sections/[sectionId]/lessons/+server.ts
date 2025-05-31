@@ -24,7 +24,7 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
       return new Response("Not found", { status: 404 });
     }
     const body = await request.json();
-    if (!body.title || typeof body.title !== 'string') {
+    if (!body.title || typeof body.title !== "string") {
       return new Response("Lesson title required", { status: 400 });
     }
     const lesson = {
@@ -34,10 +34,12 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
       text: body.text || "",
       sentences: body.sentences || [],
     };
-    await db.collection("courses").updateOne(
-      { _id: courseId, "sections._id": sectionId },
-      { $push: { "sections.$.lessons": lesson } }
-    );
+    await db
+      .collection("courses")
+      .updateOne(
+        { _id: courseId, "sections._id": sectionId },
+        { $push: { "sections.$.lessons": lesson } },
+      );
     return new Response(JSON.stringify(lesson), {
       status: 201,
       headers: { "Content-Type": "application/json" },

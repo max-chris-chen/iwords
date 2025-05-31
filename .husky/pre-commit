@@ -1,10 +1,10 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
+#!/usr/bin/env node
+const { execSync } = require('child_process');
 
-pnpm format
-pnpm lint
-RESULT=$?
-if [ $RESULT -ne 0 ]; then
-  echo "Lint failed, aborting commit."
-  exit 1
-fi
+try {
+  execSync('pnpm format', { stdio: 'inherit' });
+  execSync('pnpm lint', { stdio: 'inherit' });
+} catch (err) {
+  console.error('Lint or format failed, aborting commit.');
+  process.exit(1);
+}

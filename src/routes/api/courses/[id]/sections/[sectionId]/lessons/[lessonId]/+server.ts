@@ -27,10 +27,16 @@ export const PATCH: RequestHandler = async ({ params, locals, request }) => {
     }
     const body = await request.json();
     const updateFields: Record<string, unknown> = {};
-    if (typeof body.title === "string") updateFields["sections.$[section].lessons.$[lesson].title"] = body.title;
-    if (typeof body.content === "string") updateFields["sections.$[section].lessons.$[lesson].content"] = body.content;
-    if (typeof body.text === "string") updateFields["sections.$[section].lessons.$[lesson].text"] = body.text;
-    if (Array.isArray(body.sentences)) updateFields["sections.$[section].lessons.$[lesson].sentences"] = body.sentences;
+    if (typeof body.title === "string")
+      updateFields["sections.$[section].lessons.$[lesson].title"] = body.title;
+    if (typeof body.content === "string")
+      updateFields["sections.$[section].lessons.$[lesson].content"] =
+        body.content;
+    if (typeof body.text === "string")
+      updateFields["sections.$[section].lessons.$[lesson].text"] = body.text;
+    if (Array.isArray(body.sentences))
+      updateFields["sections.$[section].lessons.$[lesson].sentences"] =
+        body.sentences;
     const result = await db.collection("courses").updateOne(
       { _id: courseId },
       { $set: updateFields },
@@ -39,7 +45,7 @@ export const PATCH: RequestHandler = async ({ params, locals, request }) => {
           { "section._id": sectionId },
           { "lesson._id": lessonId },
         ],
-      }
+      },
     );
     if (result.modifiedCount === 1) {
       return new Response(JSON.stringify({ success: true }), {
@@ -78,10 +84,12 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     if (!course) {
       return new Response("Not found", { status: 404 });
     }
-    const result = await db.collection("courses").updateOne(
-      { _id: courseId, "sections._id": sectionId },
-      { $pull: { "sections.$.lessons": { _id: lessonId } } }
-    );
+    const result = await db
+      .collection("courses")
+      .updateOne(
+        { _id: courseId, "sections._id": sectionId },
+        { $pull: { "sections.$.lessons": { _id: lessonId } } },
+      );
     if (result.modifiedCount === 1) {
       return new Response(JSON.stringify({ success: true }), {
         status: 200,

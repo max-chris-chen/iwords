@@ -25,12 +25,15 @@ export const PATCH: RequestHandler = async ({ params, locals, request }) => {
     }
     const body = await request.json();
     const updateFields: Record<string, unknown> = {};
-    if (typeof body.title === "string") updateFields["sections.$.title"] = body.title;
+    if (typeof body.title === "string")
+      updateFields["sections.$.title"] = body.title;
     // 可扩展更多字段
-    const result = await db.collection("courses").updateOne(
-      { _id: courseId, "sections._id": sectionId },
-      { $set: updateFields }
-    );
+    const result = await db
+      .collection("courses")
+      .updateOne(
+        { _id: courseId, "sections._id": sectionId },
+        { $set: updateFields },
+      );
     if (result.modifiedCount === 1) {
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
@@ -66,10 +69,12 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     if (!course) {
       return new Response("Not found", { status: 404 });
     }
-    const result = await db.collection("courses").updateOne(
-      { _id: courseId },
-      { $pull: { sections: { _id: sectionId } } }
-    );
+    const result = await db
+      .collection("courses")
+      .updateOne(
+        { _id: courseId },
+        { $pull: { sections: { _id: sectionId } } },
+      );
     if (result.modifiedCount === 1) {
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
