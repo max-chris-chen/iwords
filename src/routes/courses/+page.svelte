@@ -112,7 +112,7 @@
 <div class="flex justify-end mb-8">
   <button
     on:click={goToAdd}
-    class="add-course-btn flex items-center gap-2 px-6 py-2 font-semibold rounded-lg border border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+    class="btn-gradient flex items-center gap-2 px-6 py-2 font-semibold rounded-lg border border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
   >
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -185,7 +185,7 @@
   </div>
 {/if}
 
-<CourseModal open={showAddModal} title="Add Course" on:close={() => showAddModal = false}>
+<CourseModal open={showAddModal} title="Add Course" onClose={() => showAddModal = false}>
   <form class="space-y-6" on:submit|preventDefault={addCourse}>
     <div>
       <label for="titleInput" class="block mb-1 font-semibold text-gray-700">Title<span class="text-red-500">*</span></label>
@@ -209,7 +209,7 @@
     <button
       type="submit"
       disabled={addLoading}
-      class="add-course-btn flex items-center gap-2 px-6 py-2 font-semibold rounded-lg border border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-full justify-center mt-4"
+      class="btn-gradient flex items-center gap-2 px-6 py-2 font-semibold rounded-lg border border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-full justify-center mt-4"
     >
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -220,7 +220,7 @@
 </CourseModal>
 
 {#if showEditModal && editCourseData}
-  <CourseModal open={showEditModal} title="Edit Course" on:close={closeEditModal}>
+  <CourseModal open={showEditModal} title="Edit Course" onClose={closeEditModal}>
     <form class="space-y-6" on:submit|preventDefault={saveEditCourse}>
       <div>
         <label class="block mb-1 font-semibold text-gray-700">Title<span class="text-red-500">*</span></label>
@@ -241,7 +241,7 @@
       {#if editError}
         <div class="text-red-600 text-center font-medium">{editError}</div>
       {/if}
-      <button type="submit" disabled={editLoading} class="add-course-btn flex items-center gap-2 px-6 py-2 font-semibold rounded-lg border border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-full justify-center mt-4">
+      <button type="submit" disabled={editLoading} class="btn-gradient flex items-center gap-2 px-6 py-2 font-semibold rounded-lg border border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-full justify-center mt-4">
         {editLoading ? "Saving..." : "保存"}
       </button>
     </form>
@@ -255,14 +255,14 @@
     gap: 1.5rem;
     margin: 2rem 0;
   }
-  .add-course-btn {
+  .btn-gradient {
     background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%) !important;
     color: #fff !important;
     opacity: 1 !important;
     box-shadow: 0 2px 8px 0 rgba(37, 99, 235, 0.1);
     border: 1px solid #2563eb;
   }
-  .add-course-btn:hover {
+  .btn-gradient:hover {
     background: linear-gradient(90deg, #1d4ed8 0%, #2563eb 100%) !important;
   }
 </style>

@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
   export let open = false;
   export let title = '';
-  const dispatch = createEventDispatcher();
+  export let onClose: (() => void) | undefined;
 
   function close() {
-    dispatch('close');
+    if (onClose) onClose();
   }
 </script>
 

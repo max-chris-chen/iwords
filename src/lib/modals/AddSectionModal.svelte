@@ -1,20 +1,22 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  export let onAdd: (() => void) | undefined;
+  export let onClose: (() => void) | undefined;
+  export let onEdit: ((payload: { title: string }) => void) | undefined;
   export let open: boolean;
   export let newTitle: string = '';
   export let error: string = '';
   export let loading: boolean = false;
   export let editMode: boolean = false;
   export let editTitle: string = '';
-  const dispatch = createEventDispatcher();
+
   function handleAdd() {
-    dispatch('add');
+    if (onAdd) onAdd();
   }
   function handleClose() {
-    dispatch('close');
+    if (onClose) onClose();
   }
   function handleEdit() {
-    dispatch('edit', { title: editTitle });
+    if (onEdit) onEdit({ title: editTitle });
   }
 </script>
 
@@ -49,12 +51,29 @@
       {/if}
       <div class="flex gap-3 justify-end mt-2">
         {#if editMode}
-          <button class="bg-primary-700 text-white px-4 py-2 rounded font-semibold hover:bg-primary-800 disabled:opacity-60" on:click={handleEdit} disabled={loading}>保存</button>
+          <button type="button" class="btn-gradient flex items-center gap-2 px-6 py-2 font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-full justify-center mt-2 disabled:opacity-60" on:click={handleEdit} disabled={loading}>
+            {loading ? "保存中..." : "保存"}
+          </button>
         {:else}
-          <button class="bg-primary-700 text-white px-4 py-2 rounded font-semibold hover:bg-primary-800 disabled:opacity-60" on:click={handleAdd} disabled={loading}>添加</button>
+          <button type="button" class="btn-gradient flex items-center gap-2 px-6 py-2 font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-full justify-center mt-2 disabled:opacity-60" on:click={handleAdd} disabled={loading}>
+            {loading ? "添加中..." : "添加"}
+          </button>
         {/if}
-        <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded font-semibold hover:bg-gray-300" on:click={handleClose}>取消</button>
       </div>
     </div>
   </div>
 {/if}
+
+<style>
+  .btn-gradient {
+    background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%) !important;
+    color: #fff !important;
+    opacity: 1 !important;
+    box-shadow: 0 2px 8px 0 rgba(37, 99, 235, 0.1);
+    border: 1px solid #2563eb;
+    transition: background 0.2s;
+  }
+  .btn-gradient:hover {
+    background: linear-gradient(90deg, #1d4ed8 0%, #2563eb 100%) !important;
+  }
+</style>

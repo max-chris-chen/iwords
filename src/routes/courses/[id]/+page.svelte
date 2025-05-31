@@ -255,23 +255,22 @@
     <span class="add-section-icon" title="Add Section" on:click={openSectionModal} tabindex="0" role="button" aria-label="Add Section">+</span>
   </div>
   <AddSectionModal
-    bind:open={showSectionModal}
-    title={newSectionTitle}
+    open={showSectionModal}
     error={sectionError}
     loading={actionLoading}
-    on:add={handleAddSection}
-    on:close={closeSectionModal}
-    bind:newTitle={newSectionTitle}
+    newTitle={newSectionTitle}
     editMode={false}
+    onAdd={handleAddSection}
+    onClose={closeSectionModal}
   />
   <AddSectionModal
-    bind:open={showEditSectionModal}
+    open={showEditSectionModal}
     error={sectionError}
     loading={actionLoading}
-    on:edit={handleEditSection}
-    on:close={closeEditSectionModal}
-    bind:editTitle={editSectionTitle}
+    editTitle={editSectionTitle}
     editMode={true}
+    onEdit={handleEditSection}
+    onClose={closeEditSectionModal}
   />
   {#if course.sections?.length}
     <ul style="list-style:none;padding:0;">
