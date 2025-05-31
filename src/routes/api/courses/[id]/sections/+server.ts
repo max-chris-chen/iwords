@@ -22,19 +22,15 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
       return new Response("Not found", { status: 404 });
     }
     const body = await request.json();
-    // Debug log for received body
-    console.log("Section POST body:", JSON.stringify(body));
     if (!body.title || typeof body.title !== "string" || !body.title.trim()) {
       return new Response("Section title required", { status: 400 });
     }
     const section = {
       _id: new ObjectId(),
+      courseId: courseId,
       title: body.title,
-      lessons: [],
     };
-    await db
-      .collection("courses")
-      .updateOne({ _id: courseId }, { $push: { sections: section } });
+    await db.collection("sections").insertOne(section);
     return new Response(JSON.stringify(section), {
       status: 201,
       headers: { "Content-Type": "application/json" },

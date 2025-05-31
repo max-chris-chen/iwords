@@ -17,11 +17,19 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
     } catch {
       return new Response("Invalid course or section id", { status: 400 });
     }
+    // 校验课程归属
     const course = await db
       .collection("courses")
       .findOne({ _id: courseId, user: locals.user._id });
     if (!course) {
       return new Response("Not found", { status: 404 });
+    }
+    // 校验 section 归属
+    const section = await db
+      .collection("sections")
+      .findOne({ _id: sectionId, courseId });
+    if (!section) {
+      return new Response("Section not found", { status: 404 });
     }
     const body = await request.json();
     if (!body.title || typeof body.title !== "string") {
@@ -29,17 +37,13 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
     }
     const lesson = {
       _id: new ObjectId(),
+      sectionId: sectionId,
       title: body.title,
       content: body.content || "",
       text: body.text || "",
       sentences: body.sentences || [],
     };
-    await db
-      .collection("courses")
-      .updateOne(
-        { _id: courseId, "sections._id": sectionId },
-        { $push: { "sections.$.lessons": lesson } },
-      );
+    await db.collection("lessons").insertOne(lesson);
     return new Response(JSON.stringify(lesson), {
       status: 201,
       headers: { "Content-Type": "application/json" },

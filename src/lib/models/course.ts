@@ -12,6 +12,7 @@ export interface LessonSentence {
 
 export interface Lesson {
   _id?: string;
+  sectionId: string; // 所属章节ID
   title: string;
   content: string; // 课时内容
   text: string; // 课时英文原文
@@ -21,8 +22,9 @@ export interface Lesson {
 
 export interface Section {
   _id?: string;
+  courseId: string; // 所属课程ID
   title: string;
-  lessons: Lesson[];
+  // lessons 字段移除，改为单独 collection
   // 可根据需要添加更多字段
 }
 
@@ -37,5 +39,5 @@ export interface Course {
   publishAt?: Date; // 发布时间
   createdAt: Date;
   updatedAt: Date;
-  sections: Section[]; // 课程章节
+  // sections 字段移除，改为单独 collection
 }

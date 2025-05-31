@@ -19,34 +19,29 @@ export const PATCH: RequestHandler = async ({ params, locals, request }) => {
     } catch {
       return new Response("Invalid id", { status: 400 });
     }
+    // 校验课程归属
     const course = await db
       .collection("courses")
       .findOne({ _id: courseId, user: locals.user._id });
     if (!course) {
       return new Response("Not found", { status: 404 });
     }
+    // 校验 section 归属
+    const section = await db
+      .collection("sections")
+      .findOne({ _id: sectionId, courseId });
+    if (!section) {
+      return new Response("Section not found", { status: 404 });
+    }
     const body = await request.json();
     const updateFields: Record<string, unknown> = {};
-    if (typeof body.title === "string")
-      updateFields["sections.$[section].lessons.$[lesson].title"] = body.title;
-    if (typeof body.content === "string")
-      updateFields["sections.$[section].lessons.$[lesson].content"] =
-        body.content;
-    if (typeof body.text === "string")
-      updateFields["sections.$[section].lessons.$[lesson].text"] = body.text;
-    if (Array.isArray(body.sentences))
-      updateFields["sections.$[section].lessons.$[lesson].sentences"] =
-        body.sentences;
-    const result = await db.collection("courses").updateOne(
-      { _id: courseId },
-      { $set: updateFields },
-      {
-        arrayFilters: [
-          { "section._id": sectionId },
-          { "lesson._id": lessonId },
-        ],
-      },
-    );
+    if (typeof body.title === "string") updateFields["title"] = body.title;
+    if (typeof body.content === "string") updateFields["content"] = body.content;
+    if (typeof body.text === "string") updateFields["text"] = body.text;
+    if (Array.isArray(body.sentences)) updateFields["sentences"] = body.sentences;
+    const result = await db
+      .collection("lessons")
+      .updateOne({ _id: lessonId, sectionId }, { $set: updateFields });
     if (result.modifiedCount === 1) {
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
@@ -78,19 +73,24 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     } catch {
       return new Response("Invalid id", { status: 400 });
     }
+    // 校验课程归属
     const course = await db
       .collection("courses")
       .findOne({ _id: courseId, user: locals.user._id });
     if (!course) {
       return new Response("Not found", { status: 404 });
     }
+    // 校验 section 归属
+    const section = await db
+      .collection("sections")
+      .findOne({ _id: sectionId, courseId });
+    if (!section) {
+      return new Response("Section not found", { status: 404 });
+    }
     const result = await db
-      .collection("courses")
-      .updateOne(
-        { _id: courseId, "sections._id": sectionId },
-        { $pull: { "sections.$.lessons": { _id: lessonId } } },
-      );
-    if (result.modifiedCount === 1) {
+      .collection("lessons")
+      .deleteOne({ _id: lessonId, sectionId });
+    if (result.deletedCount === 1) {
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },

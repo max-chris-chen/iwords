@@ -17,6 +17,7 @@ export const PATCH: RequestHandler = async ({ params, locals, request }) => {
     } catch {
       return new Response("Invalid id", { status: 400 });
     }
+    // 校验课程归属
     const course = await db
       .collection("courses")
       .findOne({ _id: courseId, user: locals.user._id });
@@ -25,15 +26,11 @@ export const PATCH: RequestHandler = async ({ params, locals, request }) => {
     }
     const body = await request.json();
     const updateFields: Record<string, unknown> = {};
-    if (typeof body.title === "string")
-      updateFields["sections.$.title"] = body.title;
+    if (typeof body.title === "string") updateFields["title"] = body.title;
     // 可扩展更多字段
     const result = await db
-      .collection("courses")
-      .updateOne(
-        { _id: courseId, "sections._id": sectionId },
-        { $set: updateFields },
-      );
+      .collection("sections")
+      .updateOne({ _id: sectionId, courseId }, { $set: updateFields });
     if (result.modifiedCount === 1) {
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
@@ -63,19 +60,20 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     } catch {
       return new Response("Invalid id", { status: 400 });
     }
+    // 校验课程归属
     const course = await db
       .collection("courses")
       .findOne({ _id: courseId, user: locals.user._id });
     if (!course) {
       return new Response("Not found", { status: 404 });
     }
+    // 删除 section
     const result = await db
-      .collection("courses")
-      .updateOne(
-        { _id: courseId },
-        { $pull: { sections: { _id: sectionId } } },
-      );
-    if (result.modifiedCount === 1) {
+      .collection("sections")
+      .deleteOne({ _id: sectionId, courseId });
+    if (result.deletedCount === 1) {
+      // 同时删除该 section 下所有 lesson
+      await db.collection("lessons").deleteMany({ sectionId });
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
