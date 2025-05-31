@@ -1,23 +1,24 @@
+import { DEEPSEEK_API_KEY, SPEECHIFY_API_KEY } from "$env/static/private";
 /**
  * 调用 DeepSeek API，将文本拆分成句子并返回 JSON 数组字符串
  * @param text 输入的长文本
  * @param apiKey DeepSeek API Key（建议从服务端环境变量传入）
  * @returns Promise<string[]> 句子数组
  */
-export async function splitTextToSentences(text: string, apiKey: string): Promise<string[]> {
-  if (!apiKey) throw new Error('Missing DEEPSEEK_API_KEY');
+export async function splitTextToSentences(text: string): Promise<string[]> {
+  if (!DEEPSEEK_API_KEY) throw new Error('Missing DEEPSEEK_API_KEY');
   const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
     },
     body: JSON.stringify({
       model: 'deepseek-chat',
       messages: [
         {
           role: 'user',
-          content: `请将下面这段文字拆分成句子，并以 JSON 数组字符串返回：${text}`
+          content: `请将下面这段文字拆分成句子，只返回 JSON 数组，不要任何解释、描述或代码块标记：${text}`
         }
       ]
     })
@@ -27,13 +28,56 @@ export async function splitTextToSentences(text: string, apiKey: string): Promis
   }
   const data = await response.json();
   let result = data.choices?.[0]?.message?.content?.trim();
-  // 兼容 AI 可能返回 markdown 代码块
-  result = result.replace(/^```json|```$/g, '').trim();
+  // 兼容 AI 可能返回 markdown 代码块和多余前缀
+  result = result.replace(/^[^\[]*```json|```$/g, '').trim();
+  result = result.replace(/^[^\[]*\[/, '['); // 去除前面多余的描述性文字
   try {
     const arr = JSON.parse(result);
     if (Array.isArray(arr)) return arr;
     throw new Error('DeepSeek 返回内容不是数组');
-  } catch (e) {
+  } catch {
     throw new Error('解析 DeepSeek 返回内容失败: ' + result);
   }
+}
+
+/**
+ * 调用 Speechify API，将文本转为语音音频数据
+ * @param text 要合成的文本
+ * @param options 可选参数：voice, output_format
+ * @returns Promise<{ audio_data: string; audio_format: string; speech_marks?: unknown }>
+ */
+export async function textToSpeech(
+  text: string,
+  options?: { voice?: string; output_format?: string }
+): Promise<{ audio_data: string; audio_format: string; speech_marks?: unknown }> {
+  const API_KEY = SPEECHIFY_API_KEY;
+  if (!API_KEY) throw new Error("SPEECHIFY_API_KEY not set");
+  const voice = options?.voice || "kristy";
+  const output_format = options?.output_format || "mp3";
+  const response = await fetch(
+    "https://api.sws.speechify.com/v1/audio/speech",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        accept: "application/json",
+        Authorization: `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        input: text,
+        voice_id: voice,
+        audio_format: output_format,
+      }),
+    },
+  );
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error("Speechify error: " + err);
+  }
+  const data = await response.json();
+  return {
+    audio_data: data.audio_data,
+    audio_format: data.audio_format,
+    speech_marks: data.speech_marks,
+  };
 }

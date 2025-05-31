@@ -1,3 +1,5 @@
+import { splitTextToSentences } from "$lib/ai";
+import type { CaptionChunk } from "$lib/models/course";
 import { getDb } from "$lib/mongodb";
 import type { RequestHandler } from "@sveltejs/kit";
 import { ObjectId } from "mongodb";
@@ -31,17 +33,55 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
     if (!section) {
       return new Response("Section not found", { status: 404 });
     }
-    const body = await request.json();
+    const body = await request.json() as {
+      title: string;
+      content?: string;
+      sentences?: { text: string }[];
+    };
     if (!body.title || typeof body.title !== "string") {
       return new Response("Lesson title required", { status: 400 });
     }
+    // AI 拆句
+    let sentences: { text: string; audioUrl?: string; caption?: CaptionChunk }[] = [];
+    if (body.content && typeof body.content === "string" && body.content.trim()) {
+      try {
+        const arr = await splitTextToSentences(body.content);
+        sentences = arr.map((t: string) => ({ text: t }));
+      } catch (err) {
+        // AI 失败不阻断主流程
+        console.error("DeepSeek splitTextToSentences error:", err);
+        sentences = [];
+      }
+    }
+
+    // sentences 不为空则调用 tts
+    if (sentences.length > 0) {
+      const { textToSpeech } = await import("$lib/ai");
+      for (const s of sentences) {
+        try {
+          const ttsRes = await textToSpeech(s.text);
+          s.audioUrl = ttsRes.audio_data;
+          // caption 字段直接保存为对象（entity），如为字符串则自动 JSON.parse
+          if (ttsRes.speech_marks) {
+            try {
+              s.caption = typeof ttsRes.speech_marks === 'string' ? JSON.parse(ttsRes.speech_marks) : ttsRes.speech_marks;
+            } catch {
+              s.caption = undefined;
+            }
+          }
+        } catch (err) {
+          console.error("TTS error for sentence:", s.text, err);
+        }
+      }
+    }
+
     const lesson = {
       _id: new ObjectId(),
       sectionId: sectionId,
       title: body.title,
       content: body.content || "",
-      text: body.text || "",
-      sentences: body.sentences || [],
+      // text 字段移除，避免类型错误
+      sentences,
     };
     await db.collection("lessons").insertOne(lesson);
     return new Response(JSON.stringify(lesson), {
