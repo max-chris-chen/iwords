@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import CourseModal from '$lib/CourseModal.svelte';
+  import CourseModal from '$lib/modals/CourseModal.svelte';
   import { onMount } from "svelte";
 
   let courses = [];

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import AddSectionModal from '$lib/AddSectionModal.svelte';
+  import AddSectionModal from '$lib/modals/AddSectionModal.svelte';
   import { onMount } from "svelte";
   import { get } from "svelte/store";
 
@@ -280,8 +280,19 @@
           <div class="section-header">
             <div class="section-title large">{section.title}</div>
             <div class="section-actions">
-              <button on:click={() => openEditSectionModal(section)} style="margin-left:1em;">Edit</button>
-              <button on:click={() => deleteSection(section._id)} style="margin-left:0.5em;" aria-label="Delete section">Delete</button>
+              <span class="add-lesson-icon" on:click={() => (addingLessonSectionId = section._id)} aria-label={`Add lesson to section ${section.title}`}
+                tabindex="0" role="button">
+                <!-- Lucide Plus-Circle icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+              </span>
+              <span class="edit-icon" on:click={() => openEditSectionModal(section)} aria-label="Edit section">
+                <!-- Lucide Pencil icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.232 5.232a3 3 0 1 1 4.243 4.243L7.5 21.5l-4 1 1-4 14.732-14.732z"></path></svg>
+              </span>
+              <span class="delete-icon" on:click={() => deleteSection(section._id)} aria-label="Delete section">
+                <!-- Lucide Trash-2 icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              </span>
             </div>
           </div>
           <button
@@ -406,6 +417,12 @@
     font-size: 1.25em;
     font-weight: 600;
   }
+  .section-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.2em;
+  }
   .section-actions button,
   .lesson-actions button {
     margin-left: 0.5em;
@@ -478,5 +495,62 @@
     color: #2563eb;
     font-style: italic;
     margin: 1em 0;
+  }
+  .edit-icon {
+    font-size: 1.5em;
+    color: #64748b; /* Skeleton 默认灰色 */
+    cursor: pointer;
+    user-select: none;
+    margin-left: 0;
+    transition: color 0.15s, background 0.15s;
+    border-radius: 50%;
+    width: 1.8em;
+    height: 1.8em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .edit-icon:hover, .edit-icon:focus {
+    color: #2563eb; /* Skeleton 主色 */
+    background: #e0f2f1;
+    outline: none;
+  }
+  .delete-icon {
+    font-size: 1.5em;
+    color: #64748b; /* Skeleton 默认灰色 */
+    cursor: pointer;
+    user-select: none;
+    margin-left: 0;
+    transition: color 0.15s, background 0.15s;
+    border-radius: 50%;
+    width: 1.8em;
+    height: 1.8em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .delete-icon:hover, .delete-icon:focus {
+    color: #dc2626; /* Skeleton 红色 */
+    background: #fde8e8;
+    outline: none;
+  }
+  .add-lesson-icon {
+    font-size: 1.5em;
+    color: #10b981; /* Skeleton 绿色 */
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s, background 0.15s;
+    border-radius: 50%;
+    width: 1.8em;
+    height: 1.8em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0;
+  }
+  .add-lesson-icon:hover, .add-lesson-icon:focus {
+    color: #059669;
+    background: #e0f2f1;
+    outline: none;
   }
 </style>
