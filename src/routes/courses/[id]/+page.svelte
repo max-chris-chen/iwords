@@ -1,16 +1,16 @@
 <script lang="ts">
   import { page } from "$app/stores";
   import AddSectionModal from '$lib/modals/AddSectionModal.svelte';
+  import type { Course, Lesson, Section } from '$lib/models/course';
   import { onMount } from "svelte";
   import { get } from "svelte/store";
 
-  let course: any = null;
+  let course: Course | null = null;
   let loading = true;
   let error = "";
 
   // UI state for adding section
   let newSectionTitle = "";
-  let addingSection = false;
   let sectionError = "";
 
   // UI state for adding lesson
@@ -19,20 +19,13 @@
   let newLessonContent = "";
   let lessonError = "";
 
-  // UI state for editing section/lesson
-  let editingSectionId: string | null = null;
-  let editingSectionTitle = "";
-  let editingLessonId: string | null = null;
-  let editingLessonTitle = "";
-  let editingLessonContent = "";
-  let actionLoading = false;
-  let actionMessage = "";
-
   // UI state for section modal
   let showSectionModal = false;
   let showEditSectionModal = false;
   let editSectionId: string | null = null;
   let editSectionTitle = "";
+  let actionLoading = false;
+  let actionMessage = "";
 
   function openSectionModal() {
     showSectionModal = true;
@@ -56,9 +49,9 @@
     }
   }
 
-  function openEditSectionModal(section) {
+  function openEditSectionModal(section: Section) {
     showEditSectionModal = true;
-    editSectionId = section._id;
+    editSectionId = section._id || null;
     editSectionTitle = section.title;
     sectionError = "";
   }
@@ -68,7 +61,7 @@
     editSectionTitle = "";
     sectionError = "";
   }
-  async function handleEditSection(e) {
+  async function handleEditSection() {
     sectionError = "";
     if (!editSectionTitle.trim()) {
       sectionError = "Section title required";
@@ -127,7 +120,6 @@
       return;
     }
     newSectionTitle = "";
-    addingSection = false;
     await fetchCourse();
   }
 
@@ -175,30 +167,6 @@
     actionLoading = false;
   }
 
-  async function startEditSection(section: any) {
-    editingSectionId = section._id;
-    editingSectionTitle = section.title;
-  }
-
-  async function saveEditSection(sectionId: string) {
-    actionLoading = true;
-    actionMessage = "";
-    const id = get(page).params.id;
-    const res = await fetch(`/api/courses/${id}/sections/${sectionId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: editingSectionTitle }),
-    });
-    if (!res.ok) {
-      actionMessage = await res.text();
-    } else {
-      actionMessage = "Section updated.";
-      editingSectionId = null;
-      await fetchCourse();
-    }
-    actionLoading = false;
-  }
-
   async function deleteLesson(sectionId: string, lessonId: string) {
     actionLoading = true;
     actionMessage = "";
@@ -215,29 +183,10 @@
     actionLoading = false;
   }
 
-  async function startEditLesson(sectionId: string, lesson: any) {
-    editingLessonId = lesson._id;
+  async function startEditLesson(sectionId: string, lesson: Lesson) {
+    editingLessonId = lesson._id || null;
     editingLessonTitle = lesson.title;
     editingLessonContent = lesson.content;
-  }
-
-  async function saveEditLesson(sectionId: string, lessonId: string) {
-    actionLoading = true;
-    actionMessage = "";
-    const id = get(page).params.id;
-    const res = await fetch(`/api/courses/${id}/sections/${sectionId}/lessons/${lessonId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: editingLessonTitle, content: editingLessonContent }),
-    });
-    if (!res.ok) {
-      actionMessage = await res.text();
-    } else {
-      actionMessage = "Lesson updated.";
-      editingLessonId = null;
-      await fetchCourse();
-    }
-    actionLoading = false;
   }
 </script>
 

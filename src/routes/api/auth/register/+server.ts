@@ -41,7 +41,7 @@ export async function POST({ request }) {
     }
 
     // Do not return password in response
-    const { password: _, ...userWithoutPassword } = newUser;
+    const { ...userWithoutPassword } = newUser;
     return json(
       { message: "User registered successfully", user: userWithoutPassword },
       { status: 201 },

@@ -58,7 +58,7 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
       };
       await db
         .collection("courses")
-        .updateOne({ _id: courseId }, { $push: { sections: section } } as any);
+        .updateOne({ _id: courseId }, { $push: { sections: section } } as import("mongodb").UpdateFilter<import("mongodb").Document>);
       return new Response(JSON.stringify(section), {
         status: 201,
         headers: { "Content-Type": "application/json" },
@@ -74,7 +74,7 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
         .collection("courses")
         .updateOne(
           { _id: courseId, "sections._id": new ObjectId(body.sectionId) },
-          { $push: { "sections.$.lessons": lesson } } as any,
+          { $push: { "sections.$.lessons": lesson } } as import("mongodb").UpdateFilter<import("mongodb").Document>,
         );
       return new Response(JSON.stringify(lesson), {
         status: 201,
@@ -129,7 +129,7 @@ export const PUT: RequestHandler = async ({ params, locals, request }) => {
       const sectionObjectId = new ObjectId(body.deleteSectionId);
       const result = await db.collection("courses").updateOne(
         { _id: courseId, user: locals.user._id },
-        { $pull: { sections: { _id: sectionObjectId } } }
+        { $pull: { sections: { _id: sectionObjectId } } } as unknown as import("mongodb").UpdateFilter<import("mongodb").Document>
       );
       if (result.modifiedCount === 1) {
         return new Response(JSON.stringify({ success: true }), {
@@ -140,7 +140,7 @@ export const PUT: RequestHandler = async ({ params, locals, request }) => {
         return new Response("Section not found or not deleted", { status: 404 });
       }
     }
-    const update: any = {};
+    const update: Record<string, unknown> = {};
     if (typeof body.title === 'string') update.title = body.title;
     if (typeof body.coverImage === 'string') update.coverImage = body.coverImage;
     if (typeof body.description === 'string') update.description = body.description;

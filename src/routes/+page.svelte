@@ -6,26 +6,14 @@
   let audio: HTMLAudioElement | null = null;
   let audioData = "";
   let audioFormat = "";
-  let speechMarks: any = null;
+  let speechMarks: { chunks?: { start_time: number; end_time: number; start: number; end: number }[] } | null = null;
   let currentWordIdx = -1;
-  let words: any[] = [];
+  let words: { start_time: number; end_time: number; start: number; end: number }[] = [];
   let speed = 1.0;
 
   // 用户登录状态
-  let user: any = null;
+  let user: { username?: string; nickname?: string; avatarUrl?: string } | null = null;
   let loadingUser = true;
-  let loginError = "";
-  let registerError = "";
-  let registerSuccess = "";
-
-  // 登录表单
-  let loginUsername = "";
-  let loginPassword = "";
-  // 注册表单
-  let regUsername = "";
-  let regEmail = "";
-  let regPhone = "";
-  let regPassword = "";
 
   async function synthesize() {
     playing = false;
@@ -106,47 +94,6 @@
   }
   onMount(fetchUser);
 
-  // 登录
-  async function login() {
-    loginError = "";
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: loginUsername,
-        password: loginPassword,
-      }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      user = data.user;
-      await fetchUser();
-    } else {
-      loginError = data.error || "登录失败";
-    }
-  }
-  // 注册
-  async function register() {
-    registerError = "";
-    registerSuccess = "";
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: regUsername,
-        email: regEmail,
-        phone: regPhone,
-        password: regPassword,
-      }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      registerSuccess = "注册成功，请登录";
-      regUsername = regEmail = regPhone = regPassword = "";
-    } else {
-      registerError = data.error || "注册失败";
-    }
-  }
   // 登出
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });

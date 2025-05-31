@@ -25,7 +25,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         }
         if (user) {
           // Omit sensitive data like password if you store it
-          const { password, ...userData } = user;
+          const { ...userData } = user;
           event.locals.user = userData as App.Locals["user"];
         }
       }

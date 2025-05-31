@@ -43,7 +43,7 @@ export async function POST({ request, cookies }) {
       maxAge: 7 * 24 * 60 * 60,
     });
     // Do not return password
-    const { password: _, ...userWithoutPassword } = user;
+    const { ...userWithoutPassword } = user;
     return json(
       { message: "Login successful", user: userWithoutPassword },
       { status: 200 },
