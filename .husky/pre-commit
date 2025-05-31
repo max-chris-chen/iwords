@@ -1,0 +1,10 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+pnpm format
+pnpm lint
+RESULT=$?
+if [ $RESULT -ne 0 ]; then
+  echo "Lint failed, aborting commit."
+  exit 1
+fi
