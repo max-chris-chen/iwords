@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/stores";
+  import AddLessonModal from '$lib/modals/AddLessonModal.svelte';
   import AddSectionModal from '$lib/modals/AddSectionModal.svelte';
   import type { Course, Lesson, Section } from '$lib/models/course';
   import { onMount } from "svelte";
@@ -13,12 +14,6 @@
   let newSectionTitle = "";
   let sectionError = "";
 
-  // UI state for adding lesson
-  let addingLessonSectionId: string | null = null;
-  let newLessonTitle = "";
-  let newLessonContent = "";
-  let lessonError = "";
-
   // UI state for section modal
   let showSectionModal = false;
   let showEditSectionModal = false;
@@ -26,6 +21,25 @@
   let editSectionTitle = "";
   let actionLoading = false;
   let actionMessage = "";
+
+  // UI state for add lesson modal
+  let showAddLessonModal = false;
+  let addLessonSectionId: string | null = null;
+  let addLessonSectionTitle = "";
+  let addLessonTitle = "";
+  let addLessonContent = "";
+  let addLessonError = "";
+  let addLessonLoading = false;
+
+  // UI state for edit lesson modal
+  let showEditLessonModal = false;
+  let editLessonSectionId: string | null = null;
+  let editLessonId: string | null = null;
+  let editLessonTitle = "";
+  let editLessonContent = "";
+  let editLessonError = "";
+  let editLessonLoading = false;
+  let editLessonSectionTitle = "";
 
   function openSectionModal() {
     showSectionModal = true;
@@ -123,31 +137,6 @@
     await fetchCourse();
   }
 
-  async function addLesson(sectionId: string) {
-    lessonError = "";
-    if (!newLessonTitle.trim()) {
-      lessonError = "Lesson title required";
-      return;
-    }
-    const id = get(page).params.id;
-    const res = await fetch(`/api/courses/${id}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        lesson: { title: newLessonTitle, content: newLessonContent },
-        sectionId,
-      }),
-    });
-    if (!res.ok) {
-      lessonError = await res.text();
-      return;
-    }
-    newLessonTitle = "";
-    newLessonContent = "";
-    addingLessonSectionId = null;
-    await fetchCourse();
-  }
-
   async function deleteSection(sectionId: string) {
     if (!confirm('确定要删除该 Section 吗？')) return;
     actionLoading = true;
@@ -183,11 +172,132 @@
     actionLoading = false;
   }
 
-  async function startEditLesson(sectionId: string, lesson: Lesson) {
-    editingLessonId = lesson._id || null;
-    editingLessonTitle = lesson.title;
-    editingLessonContent = lesson.content;
+  function startEditLesson(sectionId: string, lesson: Lesson, sectionTitle: string) {
+    editLessonSectionId = sectionId;
+    editLessonId = lesson._id || null;
+    editLessonTitle = lesson.title;
+    editLessonContent = lesson.content;
+    editLessonSectionTitle = sectionTitle;
+    editLessonError = "";
+    showEditLessonModal = true;
   }
+  function closeEditLessonModal() {
+    showEditLessonModal = false;
+    editLessonSectionId = null;
+    editLessonId = null;
+    editLessonTitle = "";
+    editLessonContent = "";
+    editLessonSectionTitle = "";
+    editLessonError = "";
+  }
+  async function handleEditLessonModalEdit(e: CustomEvent) {
+    editLessonError = "";
+    editLessonLoading = true;
+    if (!editLessonSectionId || !editLessonId) {
+      editLessonError = "Lesson not found.";
+      editLessonLoading = false;
+      return;
+    }
+    if (!e.detail.title.trim()) {
+      editLessonError = "Lesson title required";
+      editLessonLoading = false;
+      return;
+    }
+    const id = get(page).params.id;
+    const res = await fetch(`/api/courses/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        editLesson: { title: e.detail.title, content: e.detail.content },
+        sectionId: editLessonSectionId,
+        lessonId: editLessonId,
+      }),
+    });
+    if (!res.ok) {
+      editLessonError = await res.text();
+      editLessonLoading = false;
+      return;
+    }
+    showEditLessonModal = false;
+    editLessonSectionId = null;
+    editLessonId = null;
+    editLessonTitle = "";
+    editLessonContent = "";
+    editLessonSectionTitle = "";
+    await fetchCourse();
+    editLessonLoading = false;
+  }
+
+  async function handleAddLesson() {
+    addLessonError = "";
+    addLessonLoading = true;
+    if (!addLessonSectionId) {
+      addLessonError = "Section not found.";
+      addLessonLoading = false;
+      return;
+    }
+    if (!newLessonTitle.trim()) {
+      addLessonError = "Lesson title required";
+      addLessonLoading = false;
+      return;
+    }
+    const id = get(page).params.id;
+    const res = await fetch(`/api/courses/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lesson: { title: newLessonTitle, content: newLessonContent },
+        sectionId: addLessonSectionId,
+      }),
+    });
+    if (!res.ok) {
+      addLessonError = await res.text();
+      addLessonLoading = false;
+      return;
+    }
+    showAddLessonModal = false;
+    addLessonSectionId = null;
+    addLessonSectionTitle = "";
+    addLessonTitle = "";
+    addLessonContent = "";
+    await fetchCourse();
+    addLessonLoading = false;
+  }
+
+  function openAddLessonModal(sectionId: string, sectionTitle: string) {
+    showAddLessonModal = true;
+    addLessonSectionId = sectionId;
+    addLessonSectionTitle = sectionTitle;
+    addLessonTitle = "";
+    addLessonContent = "";
+    addLessonError = "";
+  }
+
+  function closeAddLessonModal() {
+    showAddLessonModal = false;
+    addLessonSectionId = null;
+    addLessonSectionTitle = "";
+    addLessonTitle = "";
+    addLessonContent = "";
+    addLessonError = "";
+  }
+
+  function handleAddLessonModalSave(e: CustomEvent) {
+    addLessonError = "";
+    addLessonLoading = true;
+    if (!addLessonSectionId) {
+      addLessonError = "Section not found.";
+      addLessonLoading = false;
+      return;
+    }
+    // 直接用 e.detail.title 和 e.detail.content 作为 newLessonTitle/newLessonContent
+    newLessonTitle = e.detail.title;
+    newLessonContent = e.detail.content;
+    handleAddLesson();
+  }
+
+  // Helper no-op functions for modal props
+  const noop = () => {};
 </script>
 
 {#if loading}
@@ -210,6 +320,7 @@
     newTitle={newSectionTitle}
     editMode={false}
     onAdd={handleAddSection}
+    onEdit={noop}
     onClose={closeSectionModal}
   />
   <AddSectionModal
@@ -218,8 +329,31 @@
     loading={actionLoading}
     editTitle={editSectionTitle}
     editMode={true}
+    onAdd={noop}
     onEdit={handleEditSection}
     onClose={closeEditSectionModal}
+  />
+  <AddLessonModal
+    open={showAddLessonModal}
+    loading={addLessonLoading}
+    error={addLessonError}
+    newTitle={addLessonTitle}
+    newContent={addLessonContent}
+    sectionTitle={addLessonSectionTitle}
+    on:save={handleAddLessonModalSave}
+    on:close={closeAddLessonModal}
+    editMode={false}
+  />
+  <AddLessonModal
+    open={showEditLessonModal}
+    loading={editLessonLoading}
+    error={editLessonError}
+    editMode={true}
+    editTitle={editLessonTitle}
+    editContent={editLessonContent}
+    sectionTitle={editLessonSectionTitle}
+    on:edit={handleEditLessonModalEdit}
+    on:close={closeEditLessonModal}
   />
   {#if course.sections?.length}
     <ul style="list-style:none;padding:0;">
@@ -228,7 +362,7 @@
           <div class="section-header">
             <div class="section-title large">{section.title}</div>
             <div class="section-actions">
-              <span class="add-lesson-icon" on:click={() => (addingLessonSectionId = section._id)} aria-label={`Add lesson to section ${section.title}`}
+              <span class="add-lesson-icon" on:click={() => openAddLessonModal(String(section._id), section.title || '')} aria-label={`Add lesson to section ${section.title}`}
                 tabindex="0" role="button">
                 <!-- Lucide Plus-Circle icon -->
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
@@ -243,29 +377,7 @@
               </span>
             </div>
           </div>
-          <button
-            on:click={() => (addingLessonSectionId = section._id)}
-            style="margin-left:1em;"
-            aria-label="Add lesson to section {section.title}">
-            Add Lesson
-          </button>
-          {#if addingLessonSectionId === section._id}
-            <div style="margin:0.5em 0;" class="input-row">
-              <input placeholder="Lesson title" bind:value={newLessonTitle} aria-label="Lesson title" />
-              <input placeholder="Lesson content" bind:value={newLessonContent} aria-label="Lesson content" />
-              <button on:click={() => addLesson(section._id)} disabled={actionLoading}>Save</button>
-              <button
-                on:click={() => {
-                  addingLessonSectionId = null;
-                  newLessonTitle = "";
-                  newLessonContent = "";
-                }}
-              >Cancel</button>
-              {#if lessonError}
-                <span class="error">{lessonError}</span>
-              {/if}
-            </div>
-          {/if}
+          
           {#if section.lessons?.length}
             <div class="lesson-list">
               <ul style="margin-top:0.5em;">
@@ -276,8 +388,8 @@
                       <span class="lesson-content">{lesson.content}</span>
                     </div>
                     <div class="lesson-actions">
-                      <button on:click={() => startEditLesson(section._id, lesson)} style="margin-left:1em;">Edit</button>
-                      <button on:click={() => deleteLesson(section._id, lesson._id)} style="margin-left:0.5em;" aria-label="Delete lesson">Delete</button>
+                      <button on:click={() => startEditLesson(String(section._id), lesson, section.title || '')} style="margin-left:1em;">Edit</button>
+                      <button on:click={() => deleteLesson(String(section._id), String(lesson._id))} style="margin-left:0.5em;" aria-label="Delete lesson">Delete</button>
                     </div>
                   </li>
                 {/each}

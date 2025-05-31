@@ -56,9 +56,9 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
         title: body.section.title,
         lessons: [],
       };
-      await db
-        .collection("courses")
-        .updateOne({ _id: courseId }, { $push: { sections: section } } as import("mongodb").UpdateFilter<import("mongodb").Document>);
+      await db.collection("courses").updateOne({ _id: courseId }, {
+        $push: { sections: section },
+      } as import("mongodb").UpdateFilter<import("mongodb").Document>);
       return new Response(JSON.stringify(section), {
         status: 201,
         headers: { "Content-Type": "application/json" },
@@ -74,7 +74,9 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
         .collection("courses")
         .updateOne(
           { _id: courseId, "sections._id": new ObjectId(body.sectionId) },
-          { $push: { "sections.$.lessons": lesson } } as import("mongodb").UpdateFilter<import("mongodb").Document>,
+          {
+            $push: { "sections.$.lessons": lesson },
+          } as import("mongodb").UpdateFilter<import("mongodb").Document>,
         );
       return new Response(JSON.stringify(lesson), {
         status: 201,
@@ -109,27 +111,66 @@ export const PUT: RequestHandler = async ({ params, locals, request }) => {
     }
     const body = await request.json();
     // Section update
-    if (body.sectionId && typeof body.title === 'string') {
+    if (body.sectionId && typeof body.title === "string") {
       const sectionObjectId = new ObjectId(body.sectionId);
-      const result = await db.collection("courses").updateOne(
-        { _id: courseId, "sections._id": sectionObjectId },
-        { $set: { "sections.$.title": body.title } }
-      );
+      const result = await db
+        .collection("courses")
+        .updateOne(
+          { _id: courseId, "sections._id": sectionObjectId },
+          { $set: { "sections.$.title": body.title } },
+        );
       if (result.modifiedCount === 1) {
         return new Response(JSON.stringify({ success: true }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });
       } else {
-        return new Response("Section not found or not updated", { status: 404 });
+        return new Response("Section not found or not updated", {
+          status: 404,
+        });
       }
     }
     // Section delete
     if (body.deleteSectionId) {
       const sectionObjectId = new ObjectId(body.deleteSectionId);
+      const result = await db
+        .collection("courses")
+        .updateOne({ _id: courseId, user: locals.user._id }, {
+          $pull: { sections: { _id: sectionObjectId } },
+        } as unknown as import("mongodb").UpdateFilter<
+          import("mongodb").Document
+        >);
+      if (result.modifiedCount === 1) {
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      } else {
+        return new Response("Section not found or not deleted", {
+          status: 404,
+        });
+      }
+    }
+    // Lesson update (edit)
+    if (body.editLesson && body.sectionId && body.lessonId) {
+      const sectionObjectId = new ObjectId(body.sectionId);
+      const lessonObjectId = new ObjectId(body.lessonId);
+      const updateFields: Record<string, unknown> = {};
+      if (typeof body.editLesson.title === "string")
+        updateFields["sections.$[section].lessons.$[lesson].title"] =
+          body.editLesson.title;
+      if (typeof body.editLesson.content === "string")
+        updateFields["sections.$[section].lessons.$[lesson].content"] =
+          body.editLesson.content;
       const result = await db.collection("courses").updateOne(
-        { _id: courseId, user: locals.user._id },
-        { $pull: { sections: { _id: sectionObjectId } } } as unknown as import("mongodb").UpdateFilter<import("mongodb").Document>
+        { _id: courseId },
+        { $set: updateFields },
+        {
+          arrayFilters: [
+            { "section._id": sectionObjectId },
+            { "lesson._id": lessonObjectId },
+          ],
+        },
       );
       if (result.modifiedCount === 1) {
         return new Response(JSON.stringify({ success: true }), {
@@ -137,19 +178,20 @@ export const PUT: RequestHandler = async ({ params, locals, request }) => {
           headers: { "Content-Type": "application/json" },
         });
       } else {
-        return new Response("Section not found or not deleted", { status: 404 });
+        return new Response("Lesson not found or not updated", { status: 404 });
       }
     }
     const update: Record<string, unknown> = {};
-    if (typeof body.title === 'string') update.title = body.title;
-    if (typeof body.coverImage === 'string') update.coverImage = body.coverImage;
-    if (typeof body.description === 'string') update.description = body.description;
-    if (typeof body.isPublic === 'boolean') update.isPublic = body.isPublic;
+    if (typeof body.title === "string") update.title = body.title;
+    if (typeof body.coverImage === "string")
+      update.coverImage = body.coverImage;
+    if (typeof body.description === "string")
+      update.description = body.description;
+    if (typeof body.isPublic === "boolean") update.isPublic = body.isPublic;
     update.updatedAt = new Date();
-    await db.collection("courses").updateOne(
-      { _id: courseId, user: locals.user._id },
-      { $set: update }
-    );
+    await db
+      .collection("courses")
+      .updateOne({ _id: courseId, user: locals.user._id }, { $set: update });
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
