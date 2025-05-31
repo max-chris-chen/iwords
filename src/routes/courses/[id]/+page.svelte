@@ -83,11 +83,11 @@
     }
     actionLoading = true;
     const id = get(page).params.id;
-    // 正确的API路径应为 /api/courses/:id，body中带sectionId
-    const res = await fetch(`/api/courses/${id}`, {
-      method: "PUT",
+    // RESTful: PATCH /api/courses/:id/sections/:sectionId
+    const res = await fetch(`/api/courses/${id}/sections/${editSectionId}`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sectionId: editSectionId, title: editSectionTitle }),
+      body: JSON.stringify({ title: editSectionTitle }),
     });
     if (!res.ok) {
       sectionError = await res.text();
@@ -124,10 +124,11 @@
       return;
     }
     const id = get(page).params.id;
-    const res = await fetch(`/api/courses/${id}`, {
+    // RESTful: POST /api/courses/:id/sections
+    const res = await fetch(`/api/courses/${id}/sections`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ section: { title: newSectionTitle } }),
+      body: JSON.stringify({ title: newSectionTitle }),
     });
     if (!res.ok) {
       sectionError = await res.text();
@@ -142,10 +143,9 @@
     actionLoading = true;
     actionMessage = "";
     const id = get(page).params.id;
-    const res = await fetch(`/api/courses/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ deleteSectionId: sectionId }),
+    // RESTful: DELETE /api/courses/:id/sections/:sectionId
+    const res = await fetch(`/api/courses/${id}/sections/${sectionId}`, {
+      method: "DELETE",
     });
     if (!res.ok) {
       actionMessage = await res.text();
@@ -156,10 +156,49 @@
     actionLoading = false;
   }
 
+  async function handleEditLessonModalEdit(e: CustomEvent) {
+    editLessonError = "";
+    editLessonLoading = true;
+    if (!editLessonSectionId || !editLessonId) {
+      editLessonError = "Lesson not found.";
+      editLessonLoading = false;
+      return;
+    }
+    if (!e.detail.title.trim()) {
+      editLessonError = "Lesson title required";
+      editLessonLoading = false;
+      return;
+    }
+    const id = get(page).params.id;
+    // RESTful: PATCH /api/courses/:id/sections/:sectionId/lessons/:lessonId
+    const res = await fetch(`/api/courses/${id}/sections/${editLessonSectionId}/lessons/${editLessonId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: e.detail.title,
+        content: e.detail.content,
+      }),
+    });
+    if (!res.ok) {
+      editLessonError = await res.text();
+      editLessonLoading = false;
+      return;
+    }
+    showEditLessonModal = false;
+    editLessonSectionId = null;
+    editLessonId = null;
+    editLessonTitle = "";
+    editLessonContent = "";
+    editLessonSectionTitle = "";
+    await fetchCourse();
+    editLessonLoading = false;
+  }
+
   async function deleteLesson(sectionId: string, lessonId: string) {
     actionLoading = true;
     actionMessage = "";
     const id = get(page).params.id;
+    // RESTful: DELETE /api/courses/:id/sections/:sectionId/lessons/:lessonId
     const res = await fetch(`/api/courses/${id}/sections/${sectionId}/lessons/${lessonId}`, {
       method: "DELETE",
     });
@@ -190,44 +229,6 @@
     editLessonSectionTitle = "";
     editLessonError = "";
   }
-  async function handleEditLessonModalEdit(e: CustomEvent) {
-    editLessonError = "";
-    editLessonLoading = true;
-    if (!editLessonSectionId || !editLessonId) {
-      editLessonError = "Lesson not found.";
-      editLessonLoading = false;
-      return;
-    }
-    if (!e.detail.title.trim()) {
-      editLessonError = "Lesson title required";
-      editLessonLoading = false;
-      return;
-    }
-    const id = get(page).params.id;
-    const res = await fetch(`/api/courses/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        editLesson: { title: e.detail.title, content: e.detail.content },
-        sectionId: editLessonSectionId,
-        lessonId: editLessonId,
-      }),
-    });
-    if (!res.ok) {
-      editLessonError = await res.text();
-      editLessonLoading = false;
-      return;
-    }
-    showEditLessonModal = false;
-    editLessonSectionId = null;
-    editLessonId = null;
-    editLessonTitle = "";
-    editLessonContent = "";
-    editLessonSectionTitle = "";
-    await fetchCourse();
-    editLessonLoading = false;
-  }
-
   async function handleAddLesson() {
     addLessonError = "";
     addLessonLoading = true;
@@ -236,18 +237,19 @@
       addLessonLoading = false;
       return;
     }
-    if (!newLessonTitle.trim()) {
+    if (!addLessonTitle.trim()) {
       addLessonError = "Lesson title required";
       addLessonLoading = false;
       return;
     }
     const id = get(page).params.id;
-    const res = await fetch(`/api/courses/${id}`, {
+    // RESTful: POST /api/courses/:id/sections/:sectionId/lessons
+    const res = await fetch(`/api/courses/${id}/sections/${addLessonSectionId}/lessons`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        lesson: { title: newLessonTitle, content: newLessonContent },
-        sectionId: addLessonSectionId,
+        title: addLessonTitle,
+        content: addLessonContent,
       }),
     });
     if (!res.ok) {
@@ -290,9 +292,8 @@
       addLessonLoading = false;
       return;
     }
-    // 直接用 e.detail.title 和 e.detail.content 作为 newLessonTitle/newLessonContent
-    newLessonTitle = e.detail.title;
-    newLessonContent = e.detail.content;
+    addLessonTitle = e.detail.title;
+    addLessonContent = e.detail.content;
     handleAddLesson();
   }
 
@@ -317,7 +318,7 @@
     open={showSectionModal}
     error={sectionError}
     loading={actionLoading}
-    newTitle={newSectionTitle}
+    bind:newTitle={newSectionTitle}
     editMode={false}
     onAdd={handleAddSection}
     onEdit={noop}
@@ -327,7 +328,7 @@
     open={showEditSectionModal}
     error={sectionError}
     loading={actionLoading}
-    editTitle={editSectionTitle}
+    bind:editTitle={editSectionTitle}
     editMode={true}
     onAdd={noop}
     onEdit={handleEditSection}

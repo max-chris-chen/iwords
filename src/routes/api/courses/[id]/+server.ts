@@ -30,7 +30,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   }
 };
 
-export const POST: RequestHandler = async ({ params, locals, request }) => {
+// Add this new handler for lesson creation under a section
+export const POST: RequestHandler = async ({ params, locals, request, url }) => {
   try {
     if (!locals.user?._id) {
       return new Response("Unauthorized", { status: 401 });
@@ -47,6 +48,31 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
       .findOne({ _id: courseId, user: locals.user._id });
     if (!course) {
       return new Response("Not found", { status: 404 });
+    }
+    // RESTful: /api/courses/:id/sections/:sectionId/lessons
+    const pathname = url.pathname;
+    const lessonMatch = pathname.match(/\/api\/courses\/([\w-]+)\/sections\/([\w-]+)\/lessons$/);
+    if (lessonMatch) {
+      const sectionId = lessonMatch[2];
+      const body = await request.json();
+      if (!body.title || typeof body.title !== 'string') {
+        return new Response("Lesson title required", { status: 400 });
+      }
+      const lesson = {
+        _id: new ObjectId(),
+        title: body.title,
+        content: body.content || "",
+        text: body.text || "",
+        sentences: body.sentences || [],
+      };
+      await db.collection("courses").updateOne(
+        { _id: courseId, "sections._id": new ObjectId(sectionId) },
+        { $push: { "sections.$.lessons": lesson } }
+      );
+      return new Response(JSON.stringify(lesson), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
     }
     const body = await request.json();
     if (body.section) {
@@ -69,6 +95,8 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
         _id: new ObjectId(),
         title: body.lesson.title,
         content: body.lesson.content || "",
+        text: body.lesson.text || "",
+        sentences: body.lesson.sentences || [],
       };
       await db
         .collection("courses")
