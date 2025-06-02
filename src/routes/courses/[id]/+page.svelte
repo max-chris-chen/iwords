@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import { page } from "$app/stores";
   import AddLessonModal from '$lib/modals/AddLessonModal.svelte';
   import AddSectionModal from '$lib/modals/AddSectionModal.svelte';
@@ -391,6 +392,7 @@
                     <div class="lesson-actions">
                       <button on:click={() => startEditLesson(String(section._id), lesson, section.title || '')} style="margin-left:1em;">Edit</button>
                       <button on:click={() => deleteLesson(String(section._id), String(lesson._id))} style="margin-left:0.5em;" aria-label="Delete lesson">Delete</button>
+                      <button on:click|stopPropagation={() => goto(`/courses/${course._id}/sections/${section._id}/lessons/${lesson._id}`)} style="margin-left:0.5em;" class="btn-study">学习</button>
                     </div>
                   </li>
                 {/each}
@@ -613,5 +615,18 @@
     color: #059669;
     background: #e0f2f1;
     outline: none;
+  }
+  .btn-study {
+    background: #4caf50;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 0.3em 0.8em;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-study:hover {
+    background: #43a047;
   }
 </style>

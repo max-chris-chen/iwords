@@ -103,3 +103,51 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     return new Response(message, { status: 500 });
   }
 };
+
+// GET /api/courses/[id]/sections/[sectionId]/lessons/[lessonId]
+export const GET: RequestHandler = async ({ params, locals }) => {
+  try {
+    if (!locals.user?._id) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    const db = await getDb();
+    let courseId: ObjectId;
+    let sectionId: ObjectId;
+    let lessonId: ObjectId;
+    try {
+      courseId = new ObjectId(params.id);
+      sectionId = new ObjectId(params.sectionId);
+      lessonId = new ObjectId(params.lessonId);
+    } catch {
+      return new Response("Invalid id", { status: 400 });
+    }
+    // 校验课程归属
+    const course = await db
+      .collection("courses")
+      .findOne({ _id: courseId, user: locals.user._id });
+    if (!course) {
+      return new Response("Not found", { status: 404 });
+    }
+    // 校验 section 归属
+    const section = await db
+      .collection("sections")
+      .findOne({ _id: sectionId, courseId });
+    if (!section) {
+      return new Response("Section not found", { status: 404 });
+    }
+    // 查找 lesson
+    const lesson = await db
+      .collection("lessons")
+      .findOne({ _id: lessonId, sectionId });
+    if (!lesson) {
+      return new Response("Lesson not found", { status: 404 });
+    }
+    return new Response(JSON.stringify(lesson), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to fetch lesson";
+    return new Response(message, { status: 500 });
+  }
+};
