@@ -60,8 +60,7 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
       for (const s of sentences) {
         try {
           const ttsRes = await textToSpeech(s.text);
-          s.audioUrl = ttsRes.audio_data;
-          // caption 字段直接保存为对象（entity），如为字符串则自动 JSON.parse
+          s.audioUrl = ttsRes.audioUrl; // 只存储文件路径
           if (ttsRes.speech_marks) {
             try {
               s.caption = typeof ttsRes.speech_marks === 'string' ? JSON.parse(ttsRes.speech_marks) : ttsRes.speech_marks;

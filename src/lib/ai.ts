@@ -1,4 +1,7 @@
-import { DEEPSEEK_API_KEY, SPEECHIFY_API_KEY } from "$env/static/private";
+import { DEEPSEEK_API_KEY, SPEECHIFY_API_KEY,AUDIO_DIR } from "$env/static/private";
+import crypto from "crypto";
+import fs from "fs-extra";
+import path from "path";
 /**
  * 调用 DeepSeek API，将文本拆分成句子并返回 JSON 数组字符串
  * @param text 输入的长文本
@@ -40,20 +43,39 @@ export async function splitTextToSentences(text: string): Promise<string[]> {
   }
 }
 
+// 音频文件存储目录，可通过环境变量 AUDIO_DIR 配置，默认 static/audio
+const AUDIO_DIR_PATH = AUDIO_DIR || path.resolve("static/audio");
+
 /**
  * 调用 Speechify API，将文本转为语音音频数据
  * @param text 要合成的文本
  * @param options 可选参数：voice, output_format
- * @returns Promise<{ audio_data: string; audio_format: string; speech_marks?: unknown }>
+ * @returns Promise<{ audioUrl: string; audio_format: string; speech_marks?: unknown }>
  */
 export async function textToSpeech(
   text: string,
   options?: { voice?: string; output_format?: string }
-): Promise<{ audio_data: string; audio_format: string; speech_marks?: unknown }> {
+): Promise<{ audioUrl: string; audio_format: string; speech_marks?: unknown }> {
   const API_KEY = SPEECHIFY_API_KEY;
   if (!API_KEY) throw new Error("SPEECHIFY_API_KEY not set");
   const voice = options?.voice || "kristy";
   const output_format = options?.output_format || "mp3";
+
+  // 1. 生成唯一hash作为文件名
+  const hash = crypto.createHash("md5").update(text + voice + output_format).digest("hex");
+  const audioFile = path.join(AUDIO_DIR_PATH, `${hash}.${output_format}`);
+  // 公开访问路径仍为 /audio/xxx.mp3（如需自定义可扩展）
+  const publicAudioPath = `/audio/${hash}.${output_format}`;
+
+  // 2. 检查文件是否已存在
+  if (await fs.pathExists(audioFile)) {
+    return {
+      audioUrl: publicAudioPath,
+      audio_format: output_format
+    };
+  }
+
+  // 3. 若不存在则调用API
   const response = await fetch(
     "https://api.sws.speechify.com/v1/audio/speech",
     {
@@ -75,8 +97,11 @@ export async function textToSpeech(
     throw new Error("Speechify error: " + err);
   }
   const data = await response.json();
+  // 4. 保存音频到磁盘
+  await fs.ensureDir(AUDIO_DIR_PATH);
+  await fs.writeFile(audioFile, Buffer.from(data.audio_data, "base64"));
   return {
-    audio_data: data.audio_data,
+    audioUrl: publicAudioPath,
     audio_format: data.audio_format,
     speech_marks: data.speech_marks,
   };
