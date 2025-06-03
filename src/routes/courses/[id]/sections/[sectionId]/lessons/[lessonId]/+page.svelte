@@ -48,36 +48,135 @@
     }
     lesson.sentences.forEach(x => x._currentWordIdx = -1);
     updateLessonSentences();
+    
     audio = new Audio(s.audioUrl);
     audio.playbackRate = playbackRate;
-    audio.play();
+    
+    // 用于取消预设的单词高亮定时器
+    let highlightTimers: number[] = [];
+    
+    // 清理所有定时器
+    function clearTimers() {
+      highlightTimers.forEach(id => window.clearTimeout(id));
+      highlightTimers = [];
+    }
+    
     if (s.caption && Array.isArray(s.caption.chunks)) {
+      // 预先安排所有单词的定时高亮
+      function scheduleWordHighlights() {
+        // 清理现有定时器
+        clearTimers();
+        
+        // 计算当前播放位置
+        const currentTime = audio!.currentTime * 1000;
+        
+        // 为每个还未播放的单词设定高亮定时器
+        s.caption.chunks.forEach((chunk, index) => {
+          const startTime = chunk.start_time;
+          const timeUntilWord = startTime - currentTime;
+          
+          // 只为未来的单词设置定时器（给100ms缓冲区）
+          if (timeUntilWord > 50) {
+            const timerId = window.setTimeout(() => {
+              // 检查音频是否还在播放
+              if (audio && !audio.paused) {
+                s._currentWordIdx = index;
+                updateLessonSentences();
+              }
+            }, timeUntilWord / playbackRate); // 根据播放速度调整时间
+            
+            highlightTimers.push(timerId);
+          }
+        });
+      }
+      
+      // 确保音频加载完成后再开始播放和高亮
+      audio.onloadedmetadata = () => {
+        // 音频元数据加载完毕，此时可以确保正确设置初始状态
+        s._currentWordIdx = -1;
+        updateLessonSentences();
+      };
+      
+      // 正常的 ontimeupdate 事件，作为备份机制
       audio.ontimeupdate = () => {
-        const t = audio!.currentTime * 1000;
-        // 优化：只在时间进入新chunk区间时才更新，避免遍历所有chunk
-        const prevIdx = s._currentWordIdx;
-        let wordIdx = prevIdx;
-        if (prevIdx === -1 || t < s.caption.chunks[prevIdx].start_time || t >= s.caption.chunks[prevIdx].end_time) {
-          // 只在区间外时查找
-          wordIdx = s.caption.chunks.findIndex(
-            (w) => t >= w.start_time && t < w.end_time
-          );
+        // 只有在音频真正开始播放后才进行高亮处理
+        if (audio!.readyState < 2 || audio!.paused) {
+          return;
         }
-        if (wordIdx !== -1 && wordIdx !== s._currentWordIdx) {
-          s._currentWordIdx = wordIdx;
-          updateLessonSentences();
+        
+        const t = audio!.currentTime * 1000;
+        
+        // 如果音频刚开始播放，确保不会立即高亮第一个单词
+        if (t < s.caption.chunks[0].start_time) {
+          if (s._currentWordIdx !== -1) {
+            s._currentWordIdx = -1;
+            updateLessonSentences();
+          }
+          return;
+        }
+        
+        // 查找当前应该高亮的单词
+        for (let i = 0; i < s.caption.chunks.length; i++) {
+          const chunk = s.caption.chunks[i];
+          // 严格按照时间区间匹配，不提前高亮
+          if (t >= chunk.start_time && t < chunk.end_time) {
+            if (s._currentWordIdx !== i) {
+              s._currentWordIdx = i;
+              updateLessonSentences();
+              // 重新安排后续单词的高亮
+              scheduleWordHighlights();
+            }
+            return;
+          }
+        }
+        
+        // 如果没有匹配的单词，可能是在单词间隙或者音频结束了
+        if (s._currentWordIdx !== -1) {
+          // 检查是否是最后一个单词播放完毕
+          const lastChunk = s.caption.chunks[s.caption.chunks.length - 1];
+          if (t >= lastChunk.end_time) {
+            s._currentWordIdx = -1;
+            updateLessonSentences();
+          }
         }
       };
+      
+      // 音频开始播放时，安排所有单词的高亮
+      audio.onplay = () => {
+        // 确保从头播放时先重置高亮状态
+        if (audio!.currentTime < 0.1) {
+          s._currentWordIdx = -1;
+          updateLessonSentences();
+        }
+        scheduleWordHighlights();
+      };
+      
+      // 处理音频结束
       audio.onended = () => {
+        clearTimers();
         playingIdx = -1;
         s._currentWordIdx = -1;
         updateLessonSentences();
       };
+      
+      // 处理音频暂停或速度变化
+      audio.onpause = clearTimers;
+      audio.onratechange = scheduleWordHighlights;
     } else {
       audio.onended = () => {
         playingIdx = -1;
       };
     }
+    
+    // 确保在开始播放前正确设置初始状态
+    s._currentWordIdx = -1;
+    updateLessonSentences();
+    
+    audio.play().catch(e => {
+      console.error('播放失败:', e);
+      playingIdx = -1;
+      updateLessonSentences();
+    });
   }
 </script>
 
