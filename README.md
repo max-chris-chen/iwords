@@ -1,102 +1,39 @@
-# iWords - Text-to-Speech SvelteKit Application
+# iWords Svelte App
 
-This is a SvelteKit application that converts text to speech using the Speechify API. It allows users to input text, synthesize it into audio, play it back at various speeds, and see the currently spoken word highlighted.
+> ⚠️ 各功能仍在开发中
 
-## Features
+## 功能亮点
 
-- Text input for speech synthesis.
-- Voice synthesis using the Speechify API.
-- Audio playback with adjustable speed (0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x).
-- Real-time word highlighting during playback.
-- Fetches available voices from the Speechify API.
+- 多级内容管理：支持课程、章节、课文、音频等
+- 课程播放页：逐词高亮、播放速度调节、现代美观样式
 
-## Project Setup
+## 使用说明
 
-### Prerequisites
+1. 安装依赖
+   ```sh
+   pnpm install
+   ```
+2. 启动开发环境
+   ```sh
+   pnpm dev
+   ```
+3. 访问课程页面，体验逐词高亮和音频播放
 
-- Node.js (version 18.x or higher recommended)
-- pnpm (or npm/yarn)
+## 配置与环境变量
 
-### Environment Variables
-
-This project requires an API key from Speechify.
-
-1.  Create a file named `.env` in the root directory of the project (e.g., `c:\data\workspace\svelte\iwords\.env`).
-2.  Add your Speechify API key to the `.env` file as follows:
-
-    ```env
-    SPEECHIFY_API_KEY=your_speechify_api_key_here
-    ```
-
-    Replace `your_speechify_api_key_here` with your actual API key.
-
-### Installation
-
-1.  Clone the repository (if you haven't already).
-2.  Navigate to the project directory:
-    ```bash
-    cd iwords
-    ```
-3.  Install the dependencies:
-    ```bash
-    pnpm install
-    ```
-    (or `npm install` / `yarn install`)
-
-## Developing
-
-Once you've set up the environment variables and installed dependencies, start the development server:
-
-```bash
-pnpm run dev
-```
-
-Or, to start the server and open the app in a new browser tab:
-
-```bash
-pnpm run dev -- --open
-```
-
-The application will typically be available at `http://localhost:5173/`.
-
-## How to Use
-
-1.  Open the application in your browser.
-2.  Enter the text you want to synthesize in the text area.
-3.  Select the desired playback speed from the dropdown menu.
-4.  Click the "合成" (Synthesize) button.
-5.  Once synthesized, click the "播放" (Play) button to listen to the audio.
-6.  The words will be highlighted as they are spoken. You can change the playback speed while the audio is playing.
-
-## Building for Production
-
-To create a production version of your app:
-
-```bash
-pnpm run build
-```
-
-You can preview the production build with `pnpm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment. For example, to use `adapter-node` for a Node.js environment, you would have already installed it (it's in your dependencies) and configured it in `svelte.config.js`.
-
-## Key Technologies
-
-- [SvelteKit](https://kit.svelte.dev/)
-- [Speechify API](https://speechify.com/text-to-speech-api/) (via `fetch`)
-- TypeScript
-- Vite
-
-## API Endpoints
-
-The application uses the following server-side API routes:
-
-- `POST /api/tts`: Handles text-to-speech synthesis requests.
-  - Expects a JSON body with `text` (string, required) and optionally `voice` (string) and `output_format` (string).
-  - Returns synthesized audio data and speech marks.
-- `GET /api/voices`: Fetches the list of available voices from the Speechify API.
-- `GET /api/debug-env`: (If created for debugging) - typically used to check environment variables on the server.
+- 在项目根目录下创建 `.env` 或 `.local.env` 文件，根据实际需求添加相关环境变量。
+- 推荐将本地开发和敏感信息配置在 `.local.env`，该文件不会被提交到版本库。
+- 配置示例：
+  ```env
+  SPEECHIFY_API_KEY=你的_speechify_api_key
+  MONGODB_URI=你的_mongodb_uri
+  DEEPSEEK_API_KEY=你的_deepseek_api_key
+  AUDIO_DIR=本地音频文件夹路径
+  ```
+- 修改后需重启开发环境以生效。
 
 ---
 
-This README provides a comprehensive guide to setting up, developing, and using the iWords application.
+如需自定义或反馈问题，请联系开发者。
+
+---
