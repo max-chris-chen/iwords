@@ -7,6 +7,7 @@
   let err = '';
   let playingIdx = -1;
   let audio: HTMLAudioElement | null = null;
+  let playbackRate = 1.0;
 
   onMount(async () => {
     loading = true;
@@ -48,13 +49,20 @@
     lesson.sentences.forEach(x => x._currentWordIdx = -1);
     updateLessonSentences();
     audio = new Audio(s.audioUrl);
+    audio.playbackRate = playbackRate;
     audio.play();
     if (s.caption && Array.isArray(s.caption.chunks)) {
       audio.ontimeupdate = () => {
         const t = audio!.currentTime * 1000;
-        let wordIdx = s.caption.chunks.findIndex(
-          (w) => t >= w.start_time && t < w.end_time
-        );
+        // 优化：只在时间进入新chunk区间时才更新，避免遍历所有chunk
+        const prevIdx = s._currentWordIdx;
+        let wordIdx = prevIdx;
+        if (prevIdx === -1 || t < s.caption.chunks[prevIdx].start_time || t >= s.caption.chunks[prevIdx].end_time) {
+          // 只在区间外时查找
+          wordIdx = s.caption.chunks.findIndex(
+            (w) => t >= w.start_time && t < w.end_time
+          );
+        }
         if (wordIdx !== -1 && wordIdx !== s._currentWordIdx) {
           s._currentWordIdx = wordIdx;
           updateLessonSentences();
@@ -80,6 +88,16 @@
 {:else if lesson}
   <h1 class="text-2xl font-bold mb-4">{lesson.title}</h1>
   <div class="mb-4 text-gray-700">{lesson.content}</div>
+  <div style="margin-bottom:1em">
+    <label for="playbackRate">播放速度：</label>
+    <select id="playbackRate" bind:value={playbackRate}>
+      <option value="0.75">0.75x</option>
+      <option value="1">1x</option>
+      <option value="1.25">1.25x</option>
+      <option value="1.5">1.5x</option>
+      <option value="2">2x</option>
+    </select>
+  </div>
   {#if lesson.sentences?.length}
     <ul class="space-y-2">
       {#each lesson.sentences as s, i}
