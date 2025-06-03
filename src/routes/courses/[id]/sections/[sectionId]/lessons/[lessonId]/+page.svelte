@@ -114,6 +114,8 @@
     padding: 0 2px;
   }
   .word.active {
-    background: yellow;
+    background: #ffe082;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px 0 rgba(67,198,172,0.10);
   }
 </style>
