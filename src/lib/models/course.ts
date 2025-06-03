@@ -4,22 +4,22 @@ export enum CourseStatus {
   Archived = "archived",
 }
 
-  export interface CaptionChunk {
-      type: string;
-      start: number;
-      end: number;
-      start_time: number;
-      end_time: number;
-      value: string;
-      chunks: Array<{
-        type: string;
-        start: number;
-        end: number;
-        start_time: number;
-        end_time: number;
-        value: string;
-      }>;
-    };
+export interface CaptionChunk {
+  type: string;
+  start: number;
+  end: number;
+  start_time: number;
+  end_time: number;
+  value: string;
+  chunks: Array<{
+    type: string;
+    start: number;
+    end: number;
+    start_time: number;
+    end_time: number;
+    value: string;
+  }>;
+}
 
 export interface LessonSentence {
   text: string; // 英文句子

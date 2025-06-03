@@ -21,20 +21,34 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       return new Response("Not found", { status: 404 });
     }
     // 查询所有 section
-    const sections = await db.collection("sections").find({ courseId }).toArray();
+    const sections = await db
+      .collection("sections")
+      .find({ courseId })
+      .toArray();
     // 查询所有 lesson
-    const sectionIds = sections.map(s => s._id);
-    const lessons = sectionIds.length > 0 ? await db.collection("lessons").find({ sectionId: { $in: sectionIds } }).toArray() : [];
+    const sectionIds = sections.map((s) => s._id);
+    const lessons =
+      sectionIds.length > 0
+        ? await db
+            .collection("lessons")
+            .find({ sectionId: { $in: sectionIds } })
+            .toArray()
+        : [];
     // 挂载 lessons 到 section
-    const sectionsWithLessons = sections.map(section => ({
+    const sectionsWithLessons = sections.map((section) => ({
       ...section,
-      lessons: lessons.filter(l => l.sectionId?.toString() === section._id.toString()),
+      lessons: lessons.filter(
+        (l) => l.sectionId?.toString() === section._id.toString(),
+      ),
     }));
     // 返回 course + sections + lessons
-    return new Response(JSON.stringify({ ...course, sections: sectionsWithLessons }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ ...course, sections: sectionsWithLessons }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to fetch course";
     return new Response(message, { status: 500 });

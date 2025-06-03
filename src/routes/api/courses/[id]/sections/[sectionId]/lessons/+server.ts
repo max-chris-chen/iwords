@@ -33,7 +33,7 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
     if (!section) {
       return new Response("Section not found", { status: 404 });
     }
-    const body = await request.json() as {
+    const body = (await request.json()) as {
       title: string;
       content?: string;
       sentences?: { text: string }[];
@@ -42,8 +42,16 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
       return new Response("Lesson title required", { status: 400 });
     }
     // AI 拆句
-    let sentences: { text: string; audioUrl?: string; caption?: CaptionChunk }[] = [];
-    if (body.content && typeof body.content === "string" && body.content.trim()) {
+    let sentences: {
+      text: string;
+      audioUrl?: string;
+      caption?: CaptionChunk;
+    }[] = [];
+    if (
+      body.content &&
+      typeof body.content === "string" &&
+      body.content.trim()
+    ) {
       try {
         const arr = await splitTextToSentences(body.content);
         sentences = arr.map((t: string) => ({ text: t }));
@@ -63,7 +71,10 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
           s.audioUrl = ttsRes.audioUrl; // 只存储文件路径
           if (ttsRes.speech_marks) {
             try {
-              s.caption = typeof ttsRes.speech_marks === 'string' ? JSON.parse(ttsRes.speech_marks) : ttsRes.speech_marks;
+              s.caption =
+                typeof ttsRes.speech_marks === "string"
+                  ? JSON.parse(ttsRes.speech_marks)
+                  : ttsRes.speech_marks;
             } catch {
               s.caption = undefined;
             }

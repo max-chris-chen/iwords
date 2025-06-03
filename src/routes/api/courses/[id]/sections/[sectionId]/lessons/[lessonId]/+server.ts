@@ -36,9 +36,11 @@ export const PATCH: RequestHandler = async ({ params, locals, request }) => {
     const body = await request.json();
     const updateFields: Record<string, unknown> = {};
     if (typeof body.title === "string") updateFields["title"] = body.title;
-    if (typeof body.content === "string") updateFields["content"] = body.content;
+    if (typeof body.content === "string")
+      updateFields["content"] = body.content;
     if (typeof body.text === "string") updateFields["text"] = body.text;
-    if (Array.isArray(body.sentences)) updateFields["sentences"] = body.sentences;
+    if (Array.isArray(body.sentences))
+      updateFields["sentences"] = body.sentences;
     const result = await db
       .collection("lessons")
       .updateOne({ _id: lessonId, sectionId }, { $set: updateFields });

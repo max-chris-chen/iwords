@@ -13,6 +13,9 @@ export async function POST({ request }) {
     const data = await textToSpeech(text, { voice, output_format });
     return json(data);
   } catch (err) {
-    return json({ error: "Speechify error", detail: String(err) }, { status: 500 });
+    return json(
+      { error: "Speechify error", detail: String(err) },
+      { status: 500 },
+    );
   }
 }

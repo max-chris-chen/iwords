@@ -1,4 +1,8 @@
-import { DEEPSEEK_API_KEY, SPEECHIFY_API_KEY,AUDIO_DIR } from "$env/static/private";
+import {
+  AUDIO_DIR,
+  DEEPSEEK_API_KEY,
+  SPEECHIFY_API_KEY,
+} from "$env/static/private";
 import crypto from "crypto";
 import fs from "fs-extra";
 import path from "path";
@@ -9,37 +13,37 @@ import path from "path";
  * @returns Promise<string[]> 句子数组
  */
 export async function splitTextToSentences(text: string): Promise<string[]> {
-  if (!DEEPSEEK_API_KEY) throw new Error('Missing DEEPSEEK_API_KEY');
-  const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-    method: 'POST',
+  if (!DEEPSEEK_API_KEY) throw new Error("Missing DEEPSEEK_API_KEY");
+  const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'deepseek-chat',
+      model: "deepseek-chat",
       messages: [
         {
-          role: 'user',
-          content: `请将下面这段文字拆分成句子，只返回 JSON 数组，不要任何解释、描述或代码块标记：${text}`
-        }
-      ]
-    })
+          role: "user",
+          content: `请将下面这段文字拆分成句子，只返回 JSON 数组，不要任何解释、描述或代码块标记：${text}`,
+        },
+      ],
+    }),
   });
   if (!response.ok) {
-    throw new Error('DeepSeek API 调用失败: ' + (await response.text()));
+    throw new Error("DeepSeek API 调用失败: " + (await response.text()));
   }
   const data = await response.json();
   let result = data.choices?.[0]?.message?.content?.trim();
   // 兼容 AI 可能返回 markdown 代码块和多余前缀
-  result = result.replace(/^[^\[]*```json|```$/g, '').trim();
-  result = result.replace(/^[^\[]*\[/, '['); // 去除前面多余的描述性文字
+  result = result.replace(/^[^\[]*```json|```$/g, "").trim();
+  result = result.replace(/^[^\[]*\[/, "["); // 去除前面多余的描述性文字
   try {
     const arr = JSON.parse(result);
     if (Array.isArray(arr)) return arr;
-    throw new Error('DeepSeek 返回内容不是数组');
+    throw new Error("DeepSeek 返回内容不是数组");
   } catch {
-    throw new Error('解析 DeepSeek 返回内容失败: ' + result);
+    throw new Error("解析 DeepSeek 返回内容失败: " + result);
   }
 }
 
@@ -54,7 +58,7 @@ const AUDIO_DIR_PATH = AUDIO_DIR || path.resolve("static/audio");
  */
 export async function textToSpeech(
   text: string,
-  options?: { voice?: string; output_format?: string }
+  options?: { voice?: string; output_format?: string },
 ): Promise<{ audioUrl: string; audio_format: string; speech_marks?: unknown }> {
   const API_KEY = SPEECHIFY_API_KEY;
   if (!API_KEY) throw new Error("SPEECHIFY_API_KEY not set");
@@ -62,16 +66,19 @@ export async function textToSpeech(
   const output_format = options?.output_format || "mp3";
 
   // 1. 生成唯一hash作为文件名
-  const hash = crypto.createHash("md5").update(text + voice + output_format).digest("hex");
+  const hash = crypto
+    .createHash("md5")
+    .update(text + voice + output_format)
+    .digest("hex");
   const audioFile = path.join(AUDIO_DIR_PATH, `${hash}.${output_format}`);
-  // 公开访问路径仍为 /audio/xxx.mp3（如需自定义可扩展）
-  const publicAudioPath = `/audio/${hash}.${output_format}`;
+  // 公开访问路径为 /api/audio/xxx.mp3
+  const publicAudioPath = `/api/audio/${hash}.${output_format}`;
 
   // 2. 检查文件是否已存在
   if (await fs.pathExists(audioFile)) {
     return {
       audioUrl: publicAudioPath,
-      audio_format: output_format
+      audio_format: output_format,
     };
   }
 
