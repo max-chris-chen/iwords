@@ -7,7 +7,7 @@
   let err = '';
   let playingIdx = -1;
   let audio: HTMLAudioElement | null = null;
-  let playbackRate = 1.0;
+  let playbackRate = '1.0';
 
   onMount(async () => {
     loading = true;
@@ -50,7 +50,7 @@
     updateLessonSentences();
     
     audio = new Audio(s.audioUrl);
-    audio.playbackRate = playbackRate;
+    audio.playbackRate = +playbackRate;
     
     // 用于取消预设的单词高亮定时器
     let highlightTimers: number[] = [];
@@ -75,7 +75,7 @@
                 s._currentWordIdx = index;
                 updateLessonSentences();
               }
-            }, timeUntilWord / playbackRate);
+            }, timeUntilWord / +playbackRate);
             highlightTimers.push(timerId);
           }
         });
@@ -155,7 +155,7 @@
     <label for="playbackRate">播放速度：</label>
     <select id="playbackRate" bind:value={playbackRate}>
       <option value="0.75">0.75x</option>
-      <option value="1">1x</option>
+      <option value="1.0">1x</option>
       <option value="1.25">1.25x</option>
       <option value="1.5">1.5x</option>
       <option value="2">2x</option>
