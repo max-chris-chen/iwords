@@ -10,7 +10,7 @@
 
   // stripPunct 用于高亮错误
   function stripPunct(str: string) {
-    return str.replace(/[\p{P}\p{S}]/gu, '');
+    return str.replace(/[-\uffff\p{P}\p{S}]/gu, '');
   }
 
   function handleKeydown(e: KeyboardEvent, wi: number) {
@@ -52,7 +52,7 @@
         autocomplete="off"
         on:keydown={(e) => handleKeydown(e, wi)}
         on:input={onPlayKeySound}
-        on:input={(e) => onInputChange(wi, e.target.value)}
+        on:input={(e) => onInputChange(wi, (e.target as HTMLInputElement).value)}
       />
       {#if wi < sentence.caption.chunks.length - 1}
         {#if sentence.text.slice(sentence.caption.chunks[wi].end, sentence.caption.chunks[wi + 1].start)}
@@ -77,7 +77,7 @@
     {/if}
   {/if}
 {:else}
-  <input type="text" bind:value={dictationInputs[0]} placeholder="请听写..." style="width:80%" on:input={onPlayKeySound} on:input={(e) => onInputChange(0, e.target.value)} />
+  <input type="text" bind:value={dictationInputs[0]} placeholder="请听写..." style="width:80%" on:input={onPlayKeySound} on:input={(e) => onInputChange(0, (e.target as HTMLInputElement).value)} />
   <button on:click={onCheck} disabled={dictationResult !== null}>提交</button>
   {#if dictationResult !== null}
     {#if dictationResult}

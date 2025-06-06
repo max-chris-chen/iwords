@@ -25,6 +25,10 @@ export interface LessonSentence {
   text: string; // 英文句子
   audioUrl: string; // 句子音频
   caption: CaptionChunk; // 字幕信息，数组
+  // 允许UI辅助字段
+  _currentWordIdx?: number;
+  _showText?: boolean;
+  [key: string]: any;
 }
 
 export interface Lesson {

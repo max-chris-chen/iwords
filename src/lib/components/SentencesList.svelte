@@ -1,7 +1,7 @@
 <script lang="ts">
-  import SentenceItem from './SentenceItem.svelte';
-  import type { Sentence } from './types'; // 如果没有types文件可用any替代
-  export let sentences: Sentence[];
+  import SentenceItem from '$lib/components/SentenceItem.svelte';
+  import type { LessonSentence } from '$lib/models/course';
+  export let sentences: LessonSentence[];
   export let mode: 'listen' | 'read' | 'dictation';
   export let playingIdx: number;
   export let onPlay: (idx: number) => void;

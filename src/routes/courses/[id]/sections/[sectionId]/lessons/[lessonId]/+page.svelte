@@ -1,33 +1,9 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
-  import DictationInput from './DictationInput.svelte';
-  import SentencesList from './SentencesList.svelte';
-
-  interface Chunk {
-    start: number;
-    end: number;
-    start_time: number;
-    end_time: number;
-  }
-
-  interface Caption {
-    chunks: Chunk[];
-  }
-
-  interface Sentence {
-    text: string;
-    audioUrl: string;
-    caption?: Caption;
-    _currentWordIdx?: number;
-    _showText?: boolean;
-  }
-
-  interface Lesson {
-    title: string;
-    content: string;
-    sentences: Sentence[];
-  }
+  import DictationInput from '$lib/components/DictationInput.svelte';
+  import SentencesList from '$lib/components/SentencesList.svelte';
+  import type { Lesson, LessonSentence } from '$lib/models/course';
 
   let lesson: Lesson | null = null;
   let loading = true;
@@ -213,7 +189,10 @@
         return;
       }
     }
-    if (!audioCtx) return;
+    // 关键：每次都检查状态
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
 
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
