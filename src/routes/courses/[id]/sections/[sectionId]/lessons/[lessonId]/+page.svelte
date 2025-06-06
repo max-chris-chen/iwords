@@ -1,6 +1,8 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
+  import DictationInput from './DictationInput.svelte';
+  import SentencesList from './SentencesList.svelte';
 
   interface Chunk {
     start: number;
@@ -410,109 +412,18 @@
     </div>
   {/if}
   {#if lesson.sentences?.length}
-    <ul class="space-y-2">
-      {#each lesson.sentences as s, i}
-        <li class="border rounded p-3 flex flex-col gap-2">
-          <div style="margin-top:0.5em;font-size:1.1em">
-            {#if mode === 'listen'}
-              {#if s.caption && Array.isArray(s.caption.chunks)}
-                {#if !s._showText}
-                  {#each s.caption.chunks as w, wi}
-                    <span class="word">{'*'.repeat(s.text.slice(w.start, w.end).length)}</span>
-                  {/each}
-                  <button class="eye-btn" on:click={() => { s._showText = true; updateLessonSentences(); }} title="显示原文">👁</button>
-                {:else}
-                  {#each s.caption.chunks as w, wi}
-                    <span class="word">{s.text.slice(w.start, w.end)}</span>
-                  {/each}
-                  <button class="eye-btn" on:click={() => { s._showText = false; updateLessonSentences(); }} title="隐藏原文">🙈</button>
-                {/if}
-              {:else}
-                {#if !s._showText}
-                  {'*'.repeat(s.text.length)}
-                  <button class="eye-btn" on:click={() => { s._showText = true; updateLessonSentences(); }} title="显示原文">👁</button>
-                {:else}
-                  {s.text}
-                  <button class="eye-btn" on:click={() => { s._showText = false; updateLessonSentences(); }} title="隐藏原文">🙈</button>
-                {/if}
-              {/if}
-            {:else if mode === 'read'}
-              {#if s.caption && Array.isArray(s.caption.chunks)}
-                {#each s.caption.chunks as w, wi}
-                  <span class="word {s._currentWordIdx === wi ? 'active' : ''}">{s.text.slice(w.start, w.end)}</span>
-                {/each}
-              {:else}
-                {s.text}
-              {/if}
-            {:else if mode === 'dictation'}
-              {#if s.caption && Array.isArray(s.caption.chunks)}
-                <form class="dictation-form" autocomplete="off" on:submit|preventDefault={() => checkDictation(i)}>
-                  {#each s.caption.chunks as w, wi}
-                    <input
-                      type="text"
-                      class="dict-word-input"
-                      bind:value={dictationInputs[i][wi]}
-                      style="width: {s.text.slice(w.start, w.end).length + 2}ch; border: none; border-bottom: 2px solid #888; background: none; text-align: center; margin: 0 2px; font-size: 1.1em; letter-spacing: 2px; outline: none; padding: 2px 0;"
-                      autocomplete="off"
-                      use:dictationInputBind={[i, wi]}
-                      on:keydown={(e) => handleDictInputKeydown(e, i, wi)}
-                      on:input={playKeySound}
-                    />
-                    {#if wi < s.caption.chunks.length - 1}
-                      {#if s.text.slice(s.caption.chunks[wi].end, s.caption.chunks[wi + 1].start)}
-                        <span>{s.text.slice(s.caption.chunks[wi].end, s.caption.chunks[wi + 1].start)}</span>
-                      {/if}
-                    {/if}
-                  {/each}
-                </form>
-                {#if dictationResults[i] !== null}
-                  {#if dictationResults[i]}
-                    <span style="color:green">✔ 正确</span>
-                  {:else}
-                    <span style="color:red">✘ 拼写错误：</span>
-                    {#if s.caption && Array.isArray(s.caption.chunks)}
-                      {#each s.caption.chunks as w, wi}
-                        {#if stripPunct(dictationInputs[i][wi]?.trim().toLowerCase()) !== stripPunct(s.text.slice(w.start, w.end).toLowerCase())}
-                          <span style="color:red">{s.text.slice(w.start, w.end)}</span>
-                        {:else}
-                          <span>{s.text.slice(w.start, w.end)}</span>
-                        {/if}
-                        {s.text.slice(w.end, s.caption.chunks[wi + 1]?.start)}
-                      {/each}
-                    {:else}
-                      <span>
-                        {#each s.text.split('') as char, ci}
-                          {#if stripPunct(dictationInputs[i]?.[0]?.[ci]?.toLowerCase()) !== stripPunct(char.toLowerCase())}
-                            <span style="color:red">{char}</span>
-                          {:else}
-                            <span>{char}</span>
-                          {/if}
-                        {/each}
-                      </span>
-                    {/if}
-                  {/if}
-                {/if}
-              {:else}
-                <input type="text" bind:value={dictationInputs[i][0]} placeholder="请听写..." style="width:80%" />
-                <button on:click={() => checkDictation(i)} disabled={dictationResults[i] !== null}>提交</button>
-                {#if dictationResults[i] !== null}
-                  {#if dictationResults[i]}
-                    <span style="color:green">✔ 正确</span>
-                  {:else}
-                    <span style="color:red">✘ 拼写错误，正确答案：{s.text}</span>
-                  {/if}
-                {/if}
-              {/if}
-            {/if}
-          </div>
-          {#if s.audioUrl}
-            <button on:click={() => playSentence(i)} disabled={playingIdx === i}>
-              {playingIdx === i ? '播放中...' : '播放'}
-            </button>
-          {/if}
-        </li>
-      {/each}
-    </ul>
+    <SentencesList
+      sentences={lesson.sentences}
+      mode={mode}
+      playingIdx={playingIdx}
+      onPlay={playSentence}
+      updateLessonSentences={updateLessonSentences}
+      dictationInputs={dictationInputs}
+      dictationResults={dictationResults}
+      dictationInputRefs={dictationInputRefs}
+      checkDictation={checkDictation}
+      playKeySound={playKeySound}
+    />
   {/if}
 {/if}
 
