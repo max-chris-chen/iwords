@@ -28,7 +28,7 @@ export interface LessonSentence {
   // 允许UI辅助字段
   _currentWordIdx?: number;
   _showText?: boolean;
-  [key: string]: any;
+  [key: string]: string | number | boolean | CaptionChunk | undefined;
 }
 
 export interface Lesson {

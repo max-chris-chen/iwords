@@ -20,10 +20,9 @@ export async function updateSection(courseId: string, sectionId: string, data: {
   return res.json();
 }
 
-export async function deleteSection(courseId: string, sectionId: string): Promise<any> {
+export async function deleteSection(courseId: string, sectionId: string): Promise<void> {
   const res = await fetch(`/api/courses/${courseId}/sections/${sectionId}`, {
     method: 'DELETE'
   });
   if (!res.ok) throw new Error(await res.text());
-  return res.json();
-} 
+}

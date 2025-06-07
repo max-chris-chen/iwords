@@ -1,9 +1,8 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
-  import DictationInput from '$lib/components/DictationInput.svelte';
   import SentencesList from '$lib/components/SentencesList.svelte';
-  import type { Lesson, LessonSentence } from '$lib/models/course';
+  import type { Lesson } from '$lib/models/course';
   import { fetchLesson } from '$lib/api/lesson';
 
   let lesson: Lesson | null = null;
@@ -13,28 +12,11 @@
   let audio: HTMLAudioElement | null = null;
   let playbackRate = '1.0';
   let mode: 'listen' | 'read' | 'dictation' = 'listen';
-  // 保证dictationInputs始终为string[][]类型
   let dictationInputs: string[][] = [];
   let dictationResults: (boolean | null)[] = [];
   let isPlayingAll = false;
   let dictationInputRefs: Array<Array<HTMLInputElement | null>> = [];
   let audioCtx: AudioContext | null = null;
-
-  // Converted to a Svelte action that properly handles element references
-  function dictationInputBind(node: HTMLInputElement, params: [number, number]) {
-    const [si, wi] = params;
-    if (!dictationInputRefs[si]) dictationInputRefs[si] = [];
-    dictationInputRefs[si][wi] = node;
-    
-    return {
-      destroy() {
-        // Clean up when the element is removed
-        if (dictationInputRefs[si]) {
-          dictationInputRefs[si][wi] = null;
-        }
-      }
-    };
-  }
 
   onMount(async () => {
     loading = true;
@@ -48,8 +30,8 @@
           s._currentWordIdx = -1;
         }
       }
-    } catch (e: any) {
-      err = e.message || '加载失败';
+    } catch {
+      err = '加载失败';
     } finally {
       loading = false;
     }
@@ -76,19 +58,19 @@
     }
     lesson.sentences.forEach(x => x._currentWordIdx = -1);
     updateLessonSentences();
-    
+
     audio = new Audio(s.audioUrl);
     audio.playbackRate = +playbackRate;
-    
+
     // 用于取消预设的单词高亮定时器
     let highlightTimers: number[] = [];
-    
+
     // 清理所有定时器
     function clearTimers() {
       highlightTimers.forEach(id => window.clearTimeout(id));
       highlightTimers = [];
     }
-    
+
     if (s.caption && Array.isArray(s.caption.chunks)) {
       // 预先安排所有单词的定时高亮
       function scheduleWordHighlights() {
@@ -172,8 +154,8 @@
     // 确保在开始播放前正确设置初始状态
     s._currentWordIdx = -1;
     updateLessonSentences();
-    audio.play().catch(e => {
-      console.error('播放失败:', e);
+    audio.play().catch((error: unknown) => {
+      console.error('播放失败:', error);
       playingIdx = -1;
       updateLessonSentences();
     });
@@ -182,8 +164,9 @@
   function playKeySound() {
     if (!audioCtx) {
       try {
-        audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      } catch (e) {
+        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        audioCtx = new AudioContextClass();
+      } catch {
         console.error("Web Audio API is not supported in this browser");
         return;
       }
@@ -214,8 +197,9 @@
     if (mode === 'dictation') {
       if (!audioCtx) {
         try {
-          audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        } catch (e) {
+          const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+          audioCtx = new AudioContextClass();
+        } catch {
           console.error("Web Audio API is not supported in this browser");
           return;
         }
@@ -231,12 +215,12 @@
             ? Array(s.caption.chunks.length).fill('')
             : ['']
         );
-        
+
         // Reset the results array
         dictationResults = Array(lesson.sentences.length).fill(null);
-        
+
         // Clear and initialize refs array for each sentence
-        dictationInputRefs = lesson.sentences.map(s => 
+        dictationInputRefs = lesson.sentences.map(s =>
           s.caption && Array.isArray(s.caption.chunks)
             ? Array(s.caption.chunks.length).fill(null)
             : [null]
@@ -327,36 +311,6 @@
         dictationInputRefs[0][0].focus();
       }
     });
-  }
-
-  function handleDictInputKeydown(e: KeyboardEvent, si: number, wi: number) {
-    if (e.key === ' ') {
-      e.preventDefault();
-      // 跳到下一个输入框并清空内容
-      const next = dictationInputRefs[si]?.[wi + 1];
-      if (next) {
-        dictationInputs[si][wi + 1] = '';
-        next.value = '';
-        next.focus();
-      }
-    } else if (e.key === 'Backspace') {
-      // 如果当前input已空，跳到上一个input并将光标移到末尾
-      const currInput = dictationInputRefs[si]?.[wi];
-      if (currInput && currInput.value === '' && wi > 0) {
-        e.preventDefault();
-        const prev = dictationInputRefs[si][wi - 1];
-        if (prev) {
-          prev.focus();
-          // 将光标移到末尾
-          const len = prev.value.length;
-          prev.setSelectionRange(len, len);
-        }
-      }
-    } else if (e.key === 'Enter') {
-      // 回车提交当前句子的答案
-      e.preventDefault();
-      checkDictation(si);
-    }
   }
 </script>
 

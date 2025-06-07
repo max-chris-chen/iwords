@@ -1,5 +1,7 @@
 <script lang="ts">
-  export let sentence: any;
+  import type { LessonSentence } from '$lib/models/course';
+
+  export let sentence: LessonSentence;
   export let sentenceIdx: number;
   export let dictationInputs: string[];
   export let dictationResult: boolean | null;
@@ -118,4 +120,4 @@
     margin-top: 0.5em;
     flex-shrink: 0;
   }
-</style> 
+</style>

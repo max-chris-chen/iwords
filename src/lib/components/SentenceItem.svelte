@@ -1,6 +1,8 @@
 <script lang="ts">
   import DictationInput from './DictationInput.svelte';
-  export let sentence: any;
+  import type { LessonSentence } from '$lib/models/course';
+
+  export let sentence: LessonSentence;
   export let idx: number;
   export let mode: 'listen' | 'read' | 'dictation';
   export let playingIdx: number;
@@ -19,12 +21,12 @@
     {#if mode === 'listen'}
       {#if sentence.caption && Array.isArray(sentence.caption.chunks)}
         {#if !sentence._showText}
-          {#each sentence.caption.chunks as w, wi}
+          {#each sentence.caption.chunks as w}
             <span class="word">{'*'.repeat(sentence.text.slice(w.start, w.end).length)}</span>
           {/each}
           <button class="eye-btn" on:click={() => { sentence._showText = true; updateLessonSentences(); }} title="显示原文">👁</button>
         {:else}
-          {#each sentence.caption.chunks as w, wi}
+          {#each sentence.caption.chunks as w}
             <span class="word">{sentence.text.slice(w.start, w.end)}</span>
           {/each}
           <button class="eye-btn" on:click={() => { sentence._showText = false; updateLessonSentences(); }} title="隐藏原文">🙈</button>
@@ -84,4 +86,4 @@
     margin-left: 0.5em;
     vertical-align: middle;
   }
-</style> 
+</style>

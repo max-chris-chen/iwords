@@ -9,7 +9,17 @@
   import { createLesson, updateLesson, deleteLesson as apiDeleteLesson } from '$lib/api/lesson';
   import { createSection, updateSection, deleteSection as apiDeleteSection } from '$lib/api/section';
 
-  let course: Course | null = null;
+  // Custom error type for API errors
+  interface ApiError extends Error {
+    message: string;
+  }
+
+  // Extended Course type that includes sections with lessons
+  interface CourseWithSections extends Course {
+    sections: Array<Section & { lessons: Lesson[] }>;
+  }
+
+  let course: CourseWithSections | null = null;
   let loading = true;
   let error = "";
 
@@ -92,8 +102,9 @@
       editSectionId = null;
       editSectionTitle = "";
       await fetchCourse();
-    } catch (err: any) {
-      sectionError = err.message || '更新失败';
+    } catch (err: unknown) {
+      const error = err as ApiError;
+      sectionError = error.message || '更新失败';
     } finally {
       actionLoading = false;
     }
@@ -107,8 +118,9 @@
       const res = await fetch(`/api/courses/${id}`);
       if (!res.ok) throw new Error(await res.text());
       course = await res.json();
-    } catch (e) {
-      error = e.message || "Failed to load course details";
+    } catch (e: unknown) {
+      const apiError = e as Error;
+      error = apiError.message || "Failed to load course details";
     } finally {
       loading = false;
     }
@@ -127,8 +139,9 @@
       await createSection(id, { title: newSectionTitle });
       newSectionTitle = "";
       await fetchCourse();
-    } catch (err: any) {
-      sectionError = err.message || '创建失败';
+    } catch (err: unknown) {
+      const error = err as ApiError;
+      sectionError = error.message || '创建失败';
     }
   }
 
@@ -141,8 +154,9 @@
       await apiDeleteSection(id, sectionId);
       actionMessage = "Section deleted.";
       await fetchCourse();
-    } catch (err: any) {
-      actionMessage = err.message || '删除失败';
+    } catch (err: unknown) {
+      const error = err as ApiError;
+      actionMessage = error.message || '删除失败';
     } finally {
       actionLoading = false;
     }
@@ -174,8 +188,9 @@
       editLessonContent = "";
       editLessonSectionTitle = "";
       await fetchCourse();
-    } catch (err: any) {
-      editLessonError = err.message || '更新失败';
+    } catch (err: unknown) {
+      const error = err as ApiError;
+      editLessonError = error.message || '更新失败';
     } finally {
       editLessonLoading = false;
     }
@@ -189,8 +204,9 @@
       await apiDeleteLesson(id, sectionId, lessonId);
       actionMessage = "Lesson deleted.";
       await fetchCourse();
-    } catch (err: any) {
-      actionMessage = err.message || '删除失败';
+    } catch (err: unknown) {
+      const error = err as ApiError;
+      actionMessage = error.message || '删除失败';
     } finally {
       actionLoading = false;
     }
@@ -232,6 +248,9 @@
       await createLesson(id, addLessonSectionId, {
         title: addLessonTitle,
         content: addLessonContent,
+        text: "",
+        sentences: [],
+        sectionId: addLessonSectionId
       });
       showAddLessonModal = false;
       addLessonSectionId = null;
@@ -239,8 +258,9 @@
       addLessonTitle = "";
       addLessonContent = "";
       await fetchCourse();
-    } catch (err: any) {
-      addLessonError = err.message || '创建失败';
+    } catch (err: unknown) {
+      const error = err as ApiError;
+      addLessonError = error.message || '创建失败';
     } finally {
       addLessonLoading = false;
     }
@@ -358,7 +378,7 @@
               </span>
             </div>
           </div>
-          
+
           {#if section.lessons?.length}
             <div class="lesson-list">
               <ul style="margin-top:0.5em;">
