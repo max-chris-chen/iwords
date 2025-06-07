@@ -4,6 +4,7 @@
   import DictationInput from '$lib/components/DictationInput.svelte';
   import SentencesList from '$lib/components/SentencesList.svelte';
   import type { Lesson, LessonSentence } from '$lib/models/course';
+  import { fetchLesson } from '$lib/api/lesson';
 
   let lesson: Lesson | null = null;
   let loading = true;
@@ -40,9 +41,7 @@
     err = '';
     const { id, sectionId, lessonId } = $page.params;
     try {
-      const res = await fetch(`/api/courses/${id}/sections/${sectionId}/lessons/${lessonId}`);
-      if (!res.ok) throw new Error(await res.text());
-      lesson = await res.json();
+      lesson = await fetchLesson(id, sectionId, lessonId);
       // 初始化每个句子的 _currentWordIdx
       if (lesson?.sentences?.length) {
         for (const s of lesson.sentences) {

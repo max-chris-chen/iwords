@@ -6,6 +6,8 @@
   import type { Course, Lesson, Section } from '$lib/models/course';
   import { onMount } from "svelte";
   import { get } from "svelte/store";
+  import { createLesson, updateLesson, deleteLesson as apiDeleteLesson } from '$lib/api/lesson';
+  import { createSection, updateSection, deleteSection as apiDeleteSection } from '$lib/api/section';
 
   let course: Course | null = null;
   let loading = true;
@@ -84,21 +86,17 @@
     }
     actionLoading = true;
     const id = get(page).params.id;
-    // RESTful: PATCH /api/courses/:id/sections/:sectionId
-    const res = await fetch(`/api/courses/${id}/sections/${editSectionId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: editSectionTitle }),
-    });
-    if (!res.ok) {
-      sectionError = await res.text();
-    } else {
+    try {
+      await updateSection(id, editSectionId, { title: editSectionTitle });
       showEditSectionModal = false;
       editSectionId = null;
       editSectionTitle = "";
       await fetchCourse();
+    } catch (err: any) {
+      sectionError = err.message || '更新失败';
+    } finally {
+      actionLoading = false;
     }
-    actionLoading = false;
   }
 
   async function fetchCourse() {
@@ -125,18 +123,13 @@
       return;
     }
     const id = get(page).params.id;
-    // RESTful: POST /api/courses/:id/sections
-    const res = await fetch(`/api/courses/${id}/sections`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newSectionTitle }),
-    });
-    if (!res.ok) {
-      sectionError = await res.text();
-      return;
+    try {
+      await createSection(id, { title: newSectionTitle });
+      newSectionTitle = "";
+      await fetchCourse();
+    } catch (err: any) {
+      sectionError = err.message || '创建失败';
     }
-    newSectionTitle = "";
-    await fetchCourse();
   }
 
   async function deleteSection(sectionId: string) {
@@ -144,17 +137,15 @@
     actionLoading = true;
     actionMessage = "";
     const id = get(page).params.id;
-    // RESTful: DELETE /api/courses/:id/sections/:sectionId
-    const res = await fetch(`/api/courses/${id}/sections/${sectionId}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) {
-      actionMessage = await res.text();
-    } else {
+    try {
+      await apiDeleteSection(id, sectionId);
       actionMessage = "Section deleted.";
       await fetchCourse();
+    } catch (err: any) {
+      actionMessage = err.message || '删除失败';
+    } finally {
+      actionLoading = false;
     }
-    actionLoading = false;
   }
 
   async function handleEditLessonModalEdit(e: CustomEvent) {
@@ -171,45 +162,38 @@
       return;
     }
     const id = get(page).params.id;
-    // RESTful: PATCH /api/courses/:id/sections/:sectionId/lessons/:lessonId
-    const res = await fetch(`/api/courses/${id}/sections/${editLessonSectionId}/lessons/${editLessonId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      await updateLesson(id, editLessonSectionId, editLessonId, {
         title: e.detail.title,
         content: e.detail.content,
-      }),
-    });
-    if (!res.ok) {
-      editLessonError = await res.text();
+      });
+      showEditLessonModal = false;
+      editLessonSectionId = null;
+      editLessonId = null;
+      editLessonTitle = "";
+      editLessonContent = "";
+      editLessonSectionTitle = "";
+      await fetchCourse();
+    } catch (err: any) {
+      editLessonError = err.message || '更新失败';
+    } finally {
       editLessonLoading = false;
-      return;
     }
-    showEditLessonModal = false;
-    editLessonSectionId = null;
-    editLessonId = null;
-    editLessonTitle = "";
-    editLessonContent = "";
-    editLessonSectionTitle = "";
-    await fetchCourse();
-    editLessonLoading = false;
   }
 
   async function deleteLesson(sectionId: string, lessonId: string) {
     actionLoading = true;
     actionMessage = "";
     const id = get(page).params.id;
-    // RESTful: DELETE /api/courses/:id/sections/:sectionId/lessons/:lessonId
-    const res = await fetch(`/api/courses/${id}/sections/${sectionId}/lessons/${lessonId}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) {
-      actionMessage = await res.text();
-    } else {
+    try {
+      await apiDeleteLesson(id, sectionId, lessonId);
       actionMessage = "Lesson deleted.";
       await fetchCourse();
+    } catch (err: any) {
+      actionMessage = err.message || '删除失败';
+    } finally {
+      actionLoading = false;
     }
-    actionLoading = false;
   }
 
   function startEditLesson(sectionId: string, lesson: Lesson, sectionTitle: string) {
@@ -244,27 +228,22 @@
       return;
     }
     const id = get(page).params.id;
-    // RESTful: POST /api/courses/:id/sections/:sectionId/lessons
-    const res = await fetch(`/api/courses/${id}/sections/${addLessonSectionId}/lessons`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      await createLesson(id, addLessonSectionId, {
         title: addLessonTitle,
         content: addLessonContent,
-      }),
-    });
-    if (!res.ok) {
-      addLessonError = await res.text();
+      });
+      showAddLessonModal = false;
+      addLessonSectionId = null;
+      addLessonSectionTitle = "";
+      addLessonTitle = "";
+      addLessonContent = "";
+      await fetchCourse();
+    } catch (err: any) {
+      addLessonError = err.message || '创建失败';
+    } finally {
       addLessonLoading = false;
-      return;
     }
-    showAddLessonModal = false;
-    addLessonSectionId = null;
-    addLessonSectionTitle = "";
-    addLessonTitle = "";
-    addLessonContent = "";
-    await fetchCourse();
-    addLessonLoading = false;
   }
 
   function openAddLessonModal(sectionId: string, sectionTitle: string) {
