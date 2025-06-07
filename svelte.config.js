@@ -9,7 +9,7 @@ const config = {
 
   kit: {
     adapter: adapter({
-      outDir: '.svelte-kit/vercel'
+      outDir: '.svelte-kit/iwords'
     }),
   },
 };
