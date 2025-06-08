@@ -1,6 +1,7 @@
 import { getDb } from "$lib/mongodb";
 import type { RequestHandler } from "@sveltejs/kit";
 import { ObjectId } from "mongodb";
+import { CourseStatus } from "$lib/models/course";
 
 export const GET: RequestHandler = async ({ params, locals }) => {
   try {
@@ -243,21 +244,36 @@ export const PUT: RequestHandler = async ({ params, locals, request }) => {
         return new Response("Lesson not found or not updated", { status: 404 });
       }
     }
+
+    // This part handles top-level course property updates
     const update: Record<string, unknown> = {};
-    if (typeof body.title === "string") update.title = body.title;
-    if (typeof body.coverImage === "string")
-      update.coverImage = body.coverImage;
-    if (typeof body.description === "string")
-      update.description = body.description;
-    if (typeof body.isPublic === "boolean") update.isPublic = body.isPublic;
-    update.updatedAt = new Date();
-    await db
-      .collection("courses")
-      .updateOne({ _id: courseId, user: locals.user._id }, { $set: update });
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    if (body.title !== undefined) update.title = body.title;
+    if (body.coverImage !== undefined) update.coverImage = body.coverImage;
+    if (body.description !== undefined) update.description = body.description;
+    if (body.isPublic !== undefined) update.isPublic = body.isPublic;
+    if (body.status !== undefined && Object.values(CourseStatus).includes(body.status)) {
+      update.status = body.status;
+    }
+
+    if (Object.keys(update).length > 0) {
+      update.updatedAt = new Date();
+      const result = await db
+        .collection("courses")
+        .updateOne({ _id: courseId, user: locals.user._id }, { $set: update });
+
+      if (result.modifiedCount === 1) {
+        const updatedCourse = await db
+          .collection("courses")
+          .findOne({ _id: courseId });
+        return new Response(JSON.stringify(updatedCourse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("Course not found or not updated", { status: 404 });
+    }
+
+    return new Response("No valid fields to update", { status: 400 });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to update course";
     return new Response(message, { status: 500 });

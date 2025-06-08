@@ -60,5 +60,7 @@ export interface Course {
   publishAt?: Date; // 发布时间
   createdAt: Date;
   updatedAt: Date;
+  studentCount?: number;
+  lessonCount?: number;
   // sections 字段移除，改为单独 collection
 }

@@ -16,6 +16,8 @@
     updateSection,
     deleteSection as apiDeleteSection,
   } from "$lib/api/section";
+  import { updateCourse } from "$lib/api/course";
+  import { CourseStatus } from "$lib/models/course";
 
   // Custom error type for API errors
   interface ApiError extends Error {
@@ -135,6 +137,20 @@
       error = apiError.message || "Failed to load course details";
     } finally {
       loading = false;
+    }
+  }
+
+  async function handleStatusChange(event: Event) {
+    if (!course) return;
+    const newStatus = (event.target as HTMLSelectElement).value as CourseStatus;
+    const id = get(page).params.id;
+    try {
+      const updatedCourse = await updateCourse(id, { status: newStatus });
+      course.status = updatedCourse.status;
+      actionMessage = "课程状态更新成功";
+    } catch (err: unknown) {
+      const error = err as ApiError;
+      actionMessage = `更新失败: ${error.message}`;
     }
   }
 
@@ -322,7 +338,18 @@
 {:else if error}
   <div style="color:red">{error}</div>
 {:else if course}
-  <h1 class="course-title"><a href={location.pathname}>{course.title}</a></h1>
+  <h1 class="course-title">
+    <a href={location.pathname}>{course.title}</a>
+    <select
+      class="status-selector"
+      value={course.status}
+      on:change={handleStatusChange}
+    >
+      {#each Object.values(CourseStatus) as status}
+        <option value={status}>{status}</option>
+      {/each}
+    </select>
+  </h1>
   {#if actionMessage}
     <div style="color:green">{actionMessage}</div>
   {/if}
@@ -526,6 +553,10 @@
     font-size: 2.2em;
     font-weight: bold;
     color: #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
   }
   .sections-header {
     display: flex;
@@ -746,5 +777,13 @@
   }
   .btn-study:hover {
     background: #43a047;
+  }
+  .status-selector {
+    font-size: 0.6em;
+    padding: 0.2em 0.5em;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    background-color: #f8f8f8;
+    cursor: pointer;
   }
 </style>

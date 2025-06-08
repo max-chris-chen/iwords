@@ -23,7 +23,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     };
 
     const result = await db.collection("courses").insertOne(course);
-    return new Response(JSON.stringify({ _id: result.insertedId }), {
+    const newCourse = { ...course, _id: result.insertedId };
+
+    return new Response(JSON.stringify(newCourse), {
       status: 201,
       headers: { "Content-Type": "application/json" },
     });

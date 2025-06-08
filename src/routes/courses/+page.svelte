@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import CourseModal from "$lib/modals/CourseModal.svelte";
+  import CourseFormModal from "$lib/modals/CourseFormModal.svelte";
   import { onMount } from "svelte";
   import type { Course } from "$lib/models/course";
 
@@ -8,17 +8,11 @@
   let loading = true;
   let error = "";
 
-  let showAddModal = false;
-  let addLoading = false;
-  let addError = "";
-  let titleInput = "";
-  let description = "";
-  let isPublic = false;
-
-  let showEditModal = false;
+  let showModal = false;
+  let modalLoading = false;
+  let modalError = "";
+  let editMode = false;
   let editCourseData: Course | null = null;
-  let editLoading = false;
-  let editError = "";
 
   onMount(async () => {
     loading = true;
@@ -35,78 +29,59 @@
     }
   });
 
-  function goToAdd() {
-    showAddModal = true;
-    titleInput = "";
-    description = "";
-    isPublic = false;
-    addError = "";
-  }
-
-  async function addCourse() {
-    addLoading = true;
-    addError = "";
-    try {
-      const res = await fetch("/api/courses/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: titleInput,
-          description,
-          isPublic,
-        }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const newCourse = await res.json();
-      courses = [newCourse, ...courses];
-      showAddModal = false;
-    } catch (e: unknown) {
-      const err = e as Error;
-      addError = err.message || "Failed to add course";
-    } finally {
-      addLoading = false;
-    }
-  }
-
-  function editCourse(course: Course) {
-    editCourseData = { ...course };
-    editError = "";
-    showEditModal = true;
-  }
-
-  function closeEditModal() {
-    showEditModal = false;
+  function openAddModal() {
+    showModal = true;
+    editMode = false;
     editCourseData = null;
+    modalError = "";
   }
 
-  async function saveEditCourse() {
-    if (!editCourseData) return;
-    editLoading = true;
-    editError = "";
+  function openEditModal(course: Course) {
+    showModal = true;
+    editMode = true;
+    editCourseData = { ...course };
+    modalError = "";
+  }
+
+  function closeModal() {
+    showModal = false;
+  }
+
+  async function handleSaveCourse(event: CustomEvent) {
+    const { title, description, isPublic, status } = event.detail;
+    modalLoading = true;
+    modalError = "";
+
+    const url = editMode
+      ? `/api/courses/${editCourseData?._id}`
+      : "/api/courses/create";
+    const method = editMode ? "PUT" : "POST";
+
     try {
-      const res = await fetch(`/api/courses/${editCourseData._id}`, {
-        method: "PUT",
+      const res = await fetch(url, {
+        method: method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: editCourseData.title,
-          description: editCourseData.description,
-          isPublic: editCourseData.isPublic,
-        }),
+        body: JSON.stringify({ title, description, isPublic, status }),
       });
       if (!res.ok) throw new Error(await res.text());
-      const updatedCourse = await res.json();
-      const index = courses.findIndex((c) => c._id === updatedCourse._id);
-      if (index !== -1) {
-        courses[index] = updatedCourse;
+      const savedCourse = await res.json();
+
+      if (editMode) {
+        const index = courses.findIndex((c) => c._id === editCourseData?._id);
+        if (index !== -1) {
+          courses[index] = { ...courses[index], ...savedCourse };
+          courses = [...courses];
+        }
+      } else {
+        courses = [savedCourse, ...courses];
       }
-      courses = [...courses];
-      showEditModal = false;
-      editCourseData = null;
+
+      closeModal();
     } catch (e: unknown) {
       const err = e as Error;
-      editError = err.message || "Failed to update course";
+      modalError = err.message || "Failed to save course";
     } finally {
-      editLoading = false;
+      modalLoading = false;
     }
   }
 </script>
@@ -118,7 +93,7 @@
       <p>管理和学习您的所有课程</p>
     </div>
     <div class="header-right">
-      <button class="btn-primary" on:click={goToAdd}>
+      <button class="btn-primary" on:click={openAddModal}>
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
@@ -177,43 +152,13 @@
             <div class="course-header">
               <h3>{course.title}</h3>
               <div class="course-header-right">
-                <div class="course-actions">
-                  <button
-                    class="action-btn"
-                    title="编辑"
-                    on:click|stopPropagation={() => editCourse(course)}
-                  >
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                      ><path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      ></path></svg
-                    >
-                  </button>
-                  <button
-                    class="action-btn"
-                    title="更多"
-                    on:click|stopPropagation
-                  >
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                      ><path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                      ></path></svg
-                    >
-                  </button>
-                </div>
                 <div class="course-badges">
                   <span
                     class="status-badge"
                     class:published={course.status === "published"}
                     class:draft={course.status !== "published"}
                   >
-                    {course.status || "draft"}
+                    {course.status === "published" ? "已发布" : "草稿"}
                   </span>
                   <span
                     class="visibility-badge"
@@ -259,13 +204,8 @@
               >
               <div class="course-actions-bottom">
                 <button
-                  class="btn-secondary"
-                  on:click|stopPropagation={() =>
-                    goto(`/courses/${course._id}`)}>预览</button
-                >
-                <button
                   class="btn-primary"
-                  on:click|stopPropagation={() => editCourse(course)}
+                  on:click|stopPropagation={() => openEditModal(course)}
                   >编辑</button
                 >
               </div>
@@ -305,100 +245,15 @@
   </div>
 </div>
 
-<CourseModal
-  open={showAddModal}
-  title="创建课程"
-  onClose={() => (showAddModal = false)}
->
-  <form class="space-y-4" on:submit|preventDefault={addCourse}>
-    <div>
-      <label for="titleInput" class="block mb-1 font-semibold text-gray-700"
-        >标题<span class="text-red-500">*</span></label
-      >
-      <input
-        id="titleInput"
-        bind:value={titleInput}
-        required
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
-      />
-    </div>
-    <div>
-      <label for="description" class="block mb-1 font-semibold text-gray-700"
-        >描述</label
-      >
-      <textarea
-        id="description"
-        bind:value={description}
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:outline-none min-h-[100px]"
-      />
-    </div>
-    <div class="flex items-center gap-2">
-      <input
-        id="isPublic"
-        type="checkbox"
-        bind:checked={isPublic}
-        class="accent-blue-600 w-4 h-4"
-      />
-      <label for="isPublic" class="font-semibold text-gray-700">公开课程</label>
-    </div>
-    {#if addError}
-      <div class="text-red-600 text-center font-medium text-sm mt-2">
-        {addError}
-      </div>
-    {/if}
-    <button
-      type="submit"
-      disabled={addLoading}
-      class="btn-primary w-full justify-center mt-4"
-    >
-      {addLoading ? "创建中..." : "创建课程"}
-    </button>
-  </form>
-</CourseModal>
-
-{#if showEditModal && editCourseData}
-  <CourseModal open={showEditModal} title="编辑课程" onClose={closeEditModal}>
-    <form class="space-y-4" on:submit|preventDefault={saveEditCourse}>
-      <div>
-        <label class="block mb-1 font-semibold text-gray-700"
-          >标题<span class="text-red-500">*</span></label
-        >
-        <input
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:outline-none"
-          bind:value={editCourseData.title}
-          required
-        />
-      </div>
-      <div>
-        <label class="block mb-1 font-semibold text-gray-700">描述</label>
-        <textarea
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:outline-none min-h-[100px]"
-          bind:value={editCourseData.description}
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <input
-          type="checkbox"
-          bind:checked={editCourseData.isPublic}
-          class="accent-blue-600 w-4 h-4"
-        />
-        <label class="font-semibold text-gray-700">公开课程</label>
-      </div>
-      {#if editError}
-        <div class="text-red-600 text-center font-medium text-sm mt-2">
-          {editError}
-        </div>
-      {/if}
-      <button
-        type="submit"
-        disabled={editLoading}
-        class="btn-primary w-full justify-center mt-4"
-      >
-        {editLoading ? "保存中..." : "保存"}
-      </button>
-    </form>
-  </CourseModal>
-{/if}
+<CourseFormModal
+  open={showModal}
+  loading={modalLoading}
+  error={modalError}
+  editMode={editMode}
+  course={editCourseData}
+  on:save={handleSaveCourse}
+  on:close={closeModal}
+/>
 
 <style>
   .main-content {
@@ -659,30 +514,5 @@
   .page-dots {
     color: #9ca3af;
     padding: 0 0.5rem;
-  }
-
-  .course-actions {
-    display: flex;
-    gap: 0.5rem;
-  }
-  .action-btn {
-    background-color: rgba(255, 255, 255, 0.8);
-    border: none;
-    border-radius: 50%;
-    width: 2.25rem;
-    height: 2.25rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-  .action-btn:hover {
-    background-color: white;
-  }
-  .action-btn svg {
-    width: 1.25rem;
-    height: 1.25rem;
-    color: #4b5563;
   }
 </style>
