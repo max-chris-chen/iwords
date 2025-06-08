@@ -101,8 +101,8 @@
 </script>
 
 <div class="container">
-  <!-- Logo Section -->
-  <div class="logo-section">
+  <!-- Hero Section with AI Features -->
+  <div class="hero-section">
     <div class="logo">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -112,13 +112,52 @@
           d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
         ></path>
       </svg>
+      <div class="ai-badge">AI</div>
     </div>
     <h1 class="logo-title">iWords</h1>
-    <p class="logo-subtitle">让英语学习变得简单有趣</p>
+    <p class="logo-subtitle">AI驱动的智能英语学习平台</p>
+    
+    <!-- AI Features Showcase -->
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+          </svg>
+        </div>
+        <h3>AI语音合成</h3>
+        <p>真人级别的语音朗读，支持多种语速调节</p>
+      </div>
+      
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+          </svg>
+        </div>
+        <h3>智能分句</h3>
+        <p>AI自动将文章拆分为句子，精准定位每个单词</p>
+      </div>
+      
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+          </svg>
+        </div>
+        <h3>逐词高亮</h3>
+        <p>跟随音频实时高亮单词，提升听力理解能力</p>
+      </div>
+    </div>
   </div>
 
   <!-- Auth Card -->
   <div class="auth-card">
+    <div class="card-header">
+      <h2>{isLoginMode ? "登录账户" : "创建账户"}</h2>
+      <p>开启您的AI英语学习之旅</p>
+    </div>
+    
     <div class="card-content">
       <form on:submit|preventDefault={handleSubmit}>
         <!-- Name Field (只在注册时显示) -->
@@ -311,12 +350,15 @@
 
         <!-- Submit Button -->
         <button type="submit" class="submit-btn" disabled={loading}>
+          <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
           {#if loading}
             处理中...
           {:else if isLoginMode}
-            登录
+            开始AI学习
           {:else}
-            注册
+            创建账户
           {/if}
         </button>
       </form>
@@ -352,7 +394,7 @@
   :global(body) {
     font-family:
       -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #dbeafe 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -360,73 +402,152 @@
     padding: 20px;
   }
 
-  .api-error,
-  .api-success {
-    text-align: center;
-    padding: 10px;
-    margin-bottom: 1rem;
-    border-radius: 8px;
-    font-size: 0.875rem;
-  }
-
-  .api-error {
-    color: #ef4444;
-    background-color: #fef2f2;
-  }
-
-  .api-success {
-    color: #10b981;
-    background-color: #f0fdf4;
-  }
-
   .container {
     width: 100%;
-    max-width: 400px;
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 3rem;
+    align-items: center;
   }
 
-  .logo-section {
+  .hero-section {
+    color: white;
     text-align: center;
-    margin-bottom: 2rem;
   }
 
   .logo {
-    width: 60px;
-    height: 60px;
+    position: relative;
+    width: 80px;
+    height: 80px;
     background: linear-gradient(135deg, #3b82f6, #1d4ed8);
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 1rem;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.4);
   }
 
   .logo svg {
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
     color: white;
   }
 
-  .logo-title {
-    font-size: 2rem;
+  .ai-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    font-size: 0.75rem;
     font-weight: 700;
-    color: #1e40af;
-    margin-bottom: 0.5rem;
+    padding: 4px 8px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  .logo-title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #ffffff, #e0e7ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .logo-subtitle {
-    color: #64748b;
-    font-size: 0.95rem;
+    font-size: 1.25rem;
+    margin-bottom: 3rem;
+    opacity: 0.9;
+    font-weight: 500;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .feature-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: left;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  }
+
+  .feature-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .feature-icon svg {
+    width: 24px;
+    height: 24px;
+    color: white;
+  }
+
+  .feature-card h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: white;
+  }
+
+  .feature-card p {
+    font-size: 0.875rem;
+    opacity: 0.8;
+    line-height: 1.5;
   }
 
   .auth-card {
     background: white;
-    border-radius: 16px;
-    box-shadow:
-      0 20px 25px -5px rgba(0, 0, 0, 0.1),
-      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     overflow: hidden;
-    border: 1px solid #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .card-header {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .card-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .card-header p {
+    opacity: 0.9;
+    font-size: 0.95rem;
   }
 
   .card-content {
@@ -440,8 +561,8 @@
   .form-label {
     display: block;
     font-size: 0.875rem;
-    font-weight: 500;
-    color: #334155;
+    font-weight: 600;
+    color: #374151;
     margin-bottom: 0.5rem;
   }
 
@@ -454,25 +575,25 @@
     left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    width: 16px;
-    height: 16px;
-    color: #94a3b8;
+    width: 18px;
+    height: 18px;
+    color: #9ca3af;
   }
 
   .form-input {
     width: 100%;
-    padding: 12px 12px 12px 40px;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-    background: #f8fafc;
+    padding: 14px 14px 14px 44px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    background: #f9fafb;
   }
 
   .form-input:focus {
     outline: none;
     border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
     background: white;
   }
 
@@ -483,21 +604,24 @@
     transform: translateY(-50%);
     background: none;
     border: none;
-    color: #94a3b8;
+    color: #9ca3af;
     cursor: pointer;
-    padding: 4px;
+    padding: 6px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s ease;
   }
 
   .password-toggle svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
   }
 
   .password-toggle:hover {
-    color: #64748b;
+    color: #6b7280;
+    background: #f3f4f6;
   }
 
   .forgot-password {
@@ -510,6 +634,7 @@
     color: #3b82f6;
     text-decoration: none;
     font-size: 0.875rem;
+    font-weight: 500;
   }
 
   .forgot-password a:hover {
@@ -522,19 +647,28 @@
     background: linear-gradient(135deg, #3b82f6, #1d4ed8);
     color: white;
     border: none;
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 500;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
     margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .btn-icon {
+    width: 20px;
+    height: 20px;
   }
 
   .submit-btn:hover {
     background: linear-gradient(135deg, #2563eb, #1e40af);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
   }
 
   .submit-btn:active {
@@ -542,7 +676,7 @@
   }
 
   .submit-btn:disabled {
-    background: #94a3b8;
+    background: #9ca3af;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
@@ -550,7 +684,7 @@
 
   .auth-switch {
     text-align: center;
-    color: #64748b;
+    color: #6b7280;
     font-size: 0.875rem;
     margin-top: 1.5rem;
   }
@@ -559,9 +693,10 @@
     background: none;
     border: none;
     color: #3b82f6;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     margin-left: 4px;
+    transition: color 0.2s ease;
   }
 
   .auth-switch button:hover {
@@ -569,35 +704,91 @@
     color: #1d4ed8;
   }
 
-  @media (max-width: 480px) {
+  .api-error,
+  .api-success {
+    text-align: center;
+    padding: 12px;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .api-error {
+    color: #dc2626;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+  }
+
+  .api-success {
+    color: #059669;
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+  }
+
+  @media (max-width: 1024px) {
     .container {
-      max-width: 100%;
+      grid-template-columns: 1fr;
+      max-width: 500px;
+      gap: 2rem;
     }
 
-    .card-content {
-      padding-left: 1.5rem;
-      padding-right: 1.5rem;
+    .hero-section {
+      order: 2;
     }
 
-    .logo {
-      width: 50px;
-      height: 50px;
+    .auth-card {
+      order: 1;
     }
 
-    .logo svg {
-      width: 24px;
-      height: 24px;
+    .features-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .feature-card {
+      padding: 1rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1rem;
+    }
+
+    .feature-card p {
+      font-size: 0.8rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .container {
+      padding: 1rem;
     }
 
     .logo-title {
-      font-size: 1.75rem;
+      font-size: 2.5rem;
+    }
+
+    .logo-subtitle {
+      font-size: 1.125rem;
+    }
+
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .card-content {
+      padding: 1.5rem;
+    }
+
+    .card-header {
+      padding: 1.5rem;
     }
   }
 
   @keyframes fadeInUp {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(30px);
     }
     to {
       opacity: 1;
@@ -606,10 +797,20 @@
   }
 
   .auth-card {
+    animation: fadeInUp 0.8s ease-out;
+  }
+
+  .hero-section {
     animation: fadeInUp 0.6s ease-out;
   }
 
-  .logo-section {
-    animation: fadeInUp 0.4s ease-out;
+  .feature-card:nth-child(1) {
+    animation-delay: 0.2s;
+  }
+  .feature-card:nth-child(2) {
+    animation-delay: 0.4s;
+  }
+  .feature-card:nth-child(3) {
+    animation-delay: 0.6s;
   }
 </style>
