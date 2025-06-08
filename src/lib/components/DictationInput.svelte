@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { LessonSentence } from '$lib/models/course';
+  import type { LessonSentence } from "$lib/models/course";
 
   export let sentence: LessonSentence;
   export let sentenceIdx: number;
@@ -12,21 +12,21 @@
 
   // stripPunct 用于高亮错误
   function stripPunct(str: string) {
-    return str.replace(/[-\uffff\p{P}\p{S}]/gu, '');
+    return str.replace(/[-\uffff\p{P}\p{S}]/gu, "");
   }
 
   function handleKeydown(e: KeyboardEvent, wi: number) {
-    if (e.key === ' ') {
+    if (e.key === " ") {
       e.preventDefault();
       const next = inputRefs[wi + 1];
       if (next) {
-        onInputChange(wi + 1, '');
-        next.value = '';
+        onInputChange(wi + 1, "");
+        next.value = "";
         next.focus();
       }
-    } else if (e.key === 'Backspace') {
+    } else if (e.key === "Backspace") {
       const currInput = inputRefs[wi];
-      if (currInput && currInput.value === '' && wi > 0) {
+      if (currInput && currInput.value === "" && wi > 0) {
         e.preventDefault();
         const prev = inputRefs[wi - 1];
         if (prev) {
@@ -35,7 +35,7 @@
           prev.setSelectionRange(len, len);
         }
       }
-    } else if (e.key === 'Enter') {
+    } else if (e.key === "Enter") {
       e.preventDefault();
       onCheck();
     }
@@ -43,22 +43,33 @@
 </script>
 
 {#if sentence.caption && Array.isArray(sentence.caption.chunks)}
-  <form class="dictation-form" autocomplete="off" on:submit|preventDefault={onCheck}>
+  <form
+    class="dictation-form"
+    autocomplete="off"
+    on:submit|preventDefault={onCheck}
+  >
     {#each sentence.caption.chunks as w, wi}
       <input
         type="text"
         class="dict-word-input"
         bind:this={inputRefs[wi]}
         bind:value={dictationInputs[wi]}
-        style="width: {sentence.text.slice(w.start, w.end).length + 2}ch; border: none; border-bottom: 2px solid #888; background: none; text-align: center; margin: 0 2px; font-size: 1.1em; letter-spacing: 2px; outline: none; padding: 2px 0;"
+        style="width: {sentence.text.slice(w.start, w.end).length +
+          2}ch; border: none; border-bottom: 2px solid #888; background: none; text-align: center; margin: 0 2px; font-size: 1.1em; letter-spacing: 2px; outline: none; padding: 2px 0;"
         autocomplete="off"
         on:keydown={(e) => handleKeydown(e, wi)}
         on:input={onPlayKeySound}
-        on:input={(e) => onInputChange(wi, (e.target as HTMLInputElement).value)}
+        on:input={(e) =>
+          onInputChange(wi, (e.target as HTMLInputElement).value)}
       />
       {#if wi < sentence.caption.chunks.length - 1}
         {#if sentence.text.slice(sentence.caption.chunks[wi].end, sentence.caption.chunks[wi + 1].start)}
-          <span>{sentence.text.slice(sentence.caption.chunks[wi].end, sentence.caption.chunks[wi + 1].start)}</span>
+          <span
+            >{sentence.text.slice(
+              sentence.caption.chunks[wi].end,
+              sentence.caption.chunks[wi + 1].start,
+            )}</span
+          >
         {/if}
       {/if}
     {/each}
@@ -69,7 +80,11 @@
     {:else}
       <span style="color:red">✘ 拼写错误：</span>
       {#each sentence.caption.chunks as w, wi}
-        {#if stripPunct(dictationInputs[wi]?.trim().toLowerCase()) !== stripPunct(sentence.text.slice(w.start, w.end).toLowerCase())}
+        {#if stripPunct(dictationInputs[wi]
+            ?.trim()
+            .toLowerCase()) !== stripPunct(sentence.text
+              .slice(w.start, w.end)
+              .toLowerCase())}
           <span style="color:red">{sentence.text.slice(w.start, w.end)}</span>
         {:else}
           <span>{sentence.text.slice(w.start, w.end)}</span>
@@ -79,7 +94,14 @@
     {/if}
   {/if}
 {:else}
-  <input type="text" bind:value={dictationInputs[0]} placeholder="请听写..." style="width:80%" on:input={onPlayKeySound} on:input={(e) => onInputChange(0, (e.target as HTMLInputElement).value)} />
+  <input
+    type="text"
+    bind:value={dictationInputs[0]}
+    placeholder="请听写..."
+    style="width:80%"
+    on:input={onPlayKeySound}
+    on:input={(e) => onInputChange(0, (e.target as HTMLInputElement).value)}
+  />
   <button on:click={onCheck} disabled={dictationResult !== null}>提交</button>
   {#if dictationResult !== null}
     {#if dictationResult}

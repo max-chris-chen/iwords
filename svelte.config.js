@@ -9,7 +9,7 @@ const config = {
 
   kit: {
     adapter: adapter({
-      outDir: '.svelte-kit/iwords'
+      outDir: ".svelte-kit/iwords",
     }),
   },
 };

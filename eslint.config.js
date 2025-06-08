@@ -6,7 +6,7 @@ import svelteParser from "svelte-eslint-parser";
 
 export default [
   {
-    files: ["eslint.config.js", "svelte.config.js", "tailwind.config.js"],
+    files: ["eslint.config.js", "svelte.config.js"],
     languageOptions: {
       // Use default parser by omitting the parser property
     },

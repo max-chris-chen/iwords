@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { page } from '$app/stores';
-  import { onMount, tick } from 'svelte';
-  import SentencesList from '$lib/components/SentencesList.svelte';
-  import type { Lesson } from '$lib/models/course';
-  import { fetchLesson } from '$lib/api/lesson';
+  import { page } from "$app/stores";
+  import { onMount, tick } from "svelte";
+  import SentencesList from "$lib/components/SentencesList.svelte";
+  import type { Lesson } from "$lib/models/course";
+  import { fetchLesson } from "$lib/api/lesson";
 
   let lesson: Lesson | null = null;
   let loading = true;
-  let err = '';
+  let err = "";
   let playingIdx = -1;
   let audio: HTMLAudioElement | null = null;
-  let playbackRate = '1.0';
-  let mode: 'listen' | 'read' | 'dictation' = 'listen';
+  let playbackRate = "1.0";
+  let mode: "listen" | "read" | "dictation" = "listen";
   let dictationInputs: string[][] = [];
   let dictationResults: (boolean | null)[] = [];
   let isPlayingAll = false;
@@ -20,7 +20,7 @@
 
   onMount(async () => {
     loading = true;
-    err = '';
+    err = "";
     const { id, sectionId, lessonId } = $page.params;
     try {
       lesson = await fetchLesson(id, sectionId, lessonId);
@@ -31,7 +31,7 @@
         }
       }
     } catch {
-      err = '加载失败';
+      err = "加载失败";
     } finally {
       loading = false;
     }
@@ -39,7 +39,7 @@
 
   function updateLessonSentences() {
     // 只在非dictation模式下才整体替换，避免input重建导致焦点丢失
-    if (mode !== 'dictation' && lesson) {
+    if (mode !== "dictation" && lesson) {
       lesson = { ...lesson, sentences: [...lesson.sentences] };
     }
   }
@@ -56,7 +56,7 @@
     if (s.caption && Array.isArray(s.caption.chunks)) {
       s._currentWordIdx = -1;
     }
-    lesson.sentences.forEach(x => x._currentWordIdx = -1);
+    lesson.sentences.forEach((x) => (x._currentWordIdx = -1));
     updateLessonSentences();
 
     audio = new Audio(s.audioUrl);
@@ -67,7 +67,7 @@
 
     // 清理所有定时器
     function clearTimers() {
-      highlightTimers.forEach(id => window.clearTimeout(id));
+      highlightTimers.forEach((id) => window.clearTimeout(id));
       highlightTimers = [];
     }
 
@@ -81,7 +81,11 @@
           const timeUntilWord = startTime - currentTime;
           if (timeUntilWord > 50) {
             const timerId = window.setTimeout(() => {
-              if (audio && !audio.paused && audio.currentTime * 1000 >= chunk.start_time) {
+              if (
+                audio &&
+                !audio.paused &&
+                audio.currentTime * 1000 >= chunk.start_time
+              ) {
                 s._currentWordIdx = index;
                 updateLessonSentences();
               }
@@ -155,7 +159,7 @@
     s._currentWordIdx = -1;
     updateLessonSentences();
     audio.play().catch((error: unknown) => {
-      console.error('播放失败:', error);
+      console.error("播放失败:", error);
       playingIdx = -1;
       updateLessonSentences();
     });
@@ -164,7 +168,10 @@
   function playKeySound() {
     if (!audioCtx) {
       try {
-        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const AudioContextClass =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext })
+            .webkitAudioContext;
         audioCtx = new AudioContextClass();
       } catch {
         console.error("Web Audio API is not supported in this browser");
@@ -172,7 +179,7 @@
       }
     }
     // 关键：每次都检查状态
-    if (audioCtx.state === 'suspended') {
+    if (audioCtx.state === "suspended") {
       audioCtx.resume();
     }
 
@@ -182,11 +189,14 @@
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
 
-    oscillator.type = 'sine';
+    oscillator.type = "sine";
     oscillator.frequency.setValueAtTime(1200, audioCtx.currentTime);
     gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
 
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.0001,
+      audioCtx.currentTime + 0.05,
+    );
 
     oscillator.start(audioCtx.currentTime);
     oscillator.stop(audioCtx.currentTime + 0.05);
@@ -194,58 +204,67 @@
 
   function setMode(newMode: typeof mode) {
     mode = newMode;
-    if (mode === 'dictation') {
+    if (mode === "dictation") {
       if (!audioCtx) {
         try {
-          const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+          const AudioContextClass =
+            window.AudioContext ||
+            (window as unknown as { webkitAudioContext: typeof AudioContext })
+              .webkitAudioContext;
           audioCtx = new AudioContextClass();
         } catch {
           console.error("Web Audio API is not supported in this browser");
           return;
         }
       }
-      if (audioCtx?.state === 'suspended') {
+      if (audioCtx?.state === "suspended") {
         audioCtx.resume();
       }
 
       if (lesson?.sentences?.length) {
         // Initialize input arrays
-        dictationInputs = lesson.sentences.map(s =>
+        dictationInputs = lesson.sentences.map((s) =>
           s.caption && Array.isArray(s.caption.chunks)
-            ? Array(s.caption.chunks.length).fill('')
-            : ['']
+            ? Array(s.caption.chunks.length).fill("")
+            : [""],
         );
 
         // Reset the results array
         dictationResults = Array(lesson.sentences.length).fill(null);
 
         // Clear and initialize refs array for each sentence
-        dictationInputRefs = lesson.sentences.map(s =>
+        dictationInputRefs = lesson.sentences.map((s) =>
           s.caption && Array.isArray(s.caption.chunks)
             ? Array(s.caption.chunks.length).fill(null)
-            : [null]
+            : [null],
         );
       }
     }
   }
 
   function stripPunct(str: string) {
-    return str.replace(/[\p{P}\p{S}]/gu, '');
+    return str.replace(/[\p{P}\p{S}]/gu, "");
   }
 
   function checkDictation(idx: number) {
     if (!lesson?.sentences?.[idx]) return;
     const s = lesson.sentences[idx];
     if (s.caption && Array.isArray(s.caption.chunks)) {
-      const answerWords = s.caption.chunks.map(w => s.text.slice(w.start, w.end));
+      const answerWords = s.caption.chunks.map((w) =>
+        s.text.slice(w.start, w.end),
+      );
       const inputWords = dictationInputs[idx];
-      dictationResults[idx] = inputWords.every((w, i) =>
-        stripPunct(w.trim().toLowerCase()) === stripPunct(answerWords[i].toLowerCase())
+      dictationResults[idx] = inputWords.every(
+        (w, i) =>
+          stripPunct(w.trim().toLowerCase()) ===
+          stripPunct(answerWords[i].toLowerCase()),
       );
     } else {
       const answer = s.text.trim();
       const input = dictationInputs[idx][0];
-      dictationResults[idx] = stripPunct(input.trim().toLowerCase()) === stripPunct(answer.toLowerCase());
+      dictationResults[idx] =
+        stripPunct(input.trim().toLowerCase()) ===
+        stripPunct(answer.toLowerCase());
     }
   }
 
@@ -305,7 +324,7 @@
   }
 
   // 监听mode和lesson切换后自动聚焦第一个输入框
-  $: if (mode === 'dictation' && lesson?.sentences?.length) {
+  $: if (mode === "dictation" && lesson?.sentences?.length) {
     tick().then(() => {
       if (dictationInputRefs[0]?.[0]) {
         dictationInputRefs[0][0].focus();
@@ -322,9 +341,16 @@
   <h1 class="text-2xl font-bold mb-4">{lesson.title}</h1>
   <div class="mb-4 text-gray-700">{lesson.content}</div>
   <div style="margin-bottom:1em;display:flex;gap:1em">
-    <button on:click={() => setMode('listen')} class:active={mode==='listen'}>听力</button>
-    <button on:click={() => setMode('read')} class:active={mode==='read'}>跟读</button>
-    <button on:click={() => setMode('dictation')} class:active={mode==='dictation'}>听写</button>
+    <button on:click={() => setMode("listen")} class:active={mode === "listen"}
+      >听力</button
+    >
+    <button on:click={() => setMode("read")} class:active={mode === "read"}
+      >跟读</button
+    >
+    <button
+      on:click={() => setMode("dictation")}
+      class:active={mode === "dictation"}>听写</button
+    >
   </div>
   <div style="margin-bottom:1em">
     <label for="playbackRate">播放速度：</label>
@@ -336,25 +362,34 @@
       <option value="2">2x</option>
     </select>
   </div>
-  {#if mode === 'listen'}
+  {#if mode === "listen"}
     <div style="margin-bottom:1em">
-      <button on:click={playAllSentences} disabled={isPlayingAll || playingIdx !== -1}>播放全部</button>
-      <button on:click={pauseAll} disabled={!isPlayingAll && playingIdx === -1}>暂停</button>
-      <button on:click={resumeAll} disabled={isPlayingAll || playingIdx === -1 || !audio || !audio.paused}>继续</button>
+      <button
+        on:click={playAllSentences}
+        disabled={isPlayingAll || playingIdx !== -1}>播放全部</button
+      >
+      <button on:click={pauseAll} disabled={!isPlayingAll && playingIdx === -1}
+        >暂停</button
+      >
+      <button
+        on:click={resumeAll}
+        disabled={isPlayingAll || playingIdx === -1 || !audio || !audio.paused}
+        >继续</button
+      >
     </div>
   {/if}
   {#if lesson.sentences?.length}
     <SentencesList
       sentences={lesson.sentences}
-      mode={mode}
-      playingIdx={playingIdx}
+      {mode}
+      {playingIdx}
       onPlay={playSentence}
-      updateLessonSentences={updateLessonSentences}
-      dictationInputs={dictationInputs}
-      dictationResults={dictationResults}
-      dictationInputRefs={dictationInputRefs}
-      checkDictation={checkDictation}
-      playKeySound={playKeySound}
+      {updateLessonSentences}
+      {dictationInputs}
+      {dictationResults}
+      {dictationInputRefs}
+      {checkDictation}
+      {playKeySound}
     />
   {/if}
 {/if}
@@ -370,7 +405,7 @@
   .word.active {
     background: #ffe082;
     border-radius: 6px;
-    box-shadow: 0 1px 4px 0 rgba(67,198,172,0.10);
+    box-shadow: 0 1px 4px 0 rgba(67, 198, 172, 0.1);
   }
   .active {
     background: #1976d2;

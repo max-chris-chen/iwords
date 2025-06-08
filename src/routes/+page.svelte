@@ -6,13 +6,29 @@
   let audio: HTMLAudioElement | null = null;
   let audioData = "";
   let audioFormat = "";
-  let speechMarks: { chunks?: { start_time: number; end_time: number; start: number; end: number }[] } | null = null;
+  let speechMarks: {
+    chunks?: {
+      start_time: number;
+      end_time: number;
+      start: number;
+      end: number;
+    }[];
+  } | null = null;
   let currentWordIdx = -1;
-  let words: { start_time: number; end_time: number; start: number; end: number }[] = [];
+  let words: {
+    start_time: number;
+    end_time: number;
+    start: number;
+    end: number;
+  }[] = [];
   let speed = 1.0;
 
   // 用户登录状态
-  let user: { username?: string; nickname?: string; avatarUrl?: string } | null = null;
+  let user: {
+    username?: string;
+    nickname?: string;
+    avatarUrl?: string;
+  } | null = null;
   let loadingUser = true;
 
   async function synthesize() {

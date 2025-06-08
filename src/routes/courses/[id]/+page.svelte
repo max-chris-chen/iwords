@@ -1,13 +1,21 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
+  import { goto } from "$app/navigation";
   import { page } from "$app/stores";
-  import AddLessonModal from '$lib/modals/AddLessonModal.svelte';
-  import AddSectionModal from '$lib/modals/AddSectionModal.svelte';
-  import type { Course, Lesson, Section } from '$lib/models/course';
+  import AddLessonModal from "$lib/modals/AddLessonModal.svelte";
+  import AddSectionModal from "$lib/modals/AddSectionModal.svelte";
+  import type { Course, Lesson, Section } from "$lib/models/course";
   import { onMount } from "svelte";
   import { get } from "svelte/store";
-  import { createLesson, updateLesson, deleteLesson as apiDeleteLesson } from '$lib/api/lesson';
-  import { createSection, updateSection, deleteSection as apiDeleteSection } from '$lib/api/section';
+  import {
+    createLesson,
+    updateLesson,
+    deleteLesson as apiDeleteLesson,
+  } from "$lib/api/lesson";
+  import {
+    createSection,
+    updateSection,
+    deleteSection as apiDeleteSection,
+  } from "$lib/api/section";
 
   // Custom error type for API errors
   interface ApiError extends Error {
@@ -94,6 +102,10 @@
       sectionError = "Section title required";
       return;
     }
+    if (!editSectionId) {
+      sectionError = "Section not found";
+      return;
+    }
     actionLoading = true;
     const id = get(page).params.id;
     try {
@@ -104,7 +116,7 @@
       await fetchCourse();
     } catch (err: unknown) {
       const error = err as ApiError;
-      sectionError = error.message || '更新失败';
+      sectionError = error.message || "更新失败";
     } finally {
       actionLoading = false;
     }
@@ -141,12 +153,12 @@
       await fetchCourse();
     } catch (err: unknown) {
       const error = err as ApiError;
-      sectionError = error.message || '创建失败';
+      sectionError = error.message || "创建失败";
     }
   }
 
   async function deleteSection(sectionId: string) {
-    if (!confirm('确定要删除该 Section 吗？')) return;
+    if (!confirm("确定要删除该 Section 吗？")) return;
     actionLoading = true;
     actionMessage = "";
     const id = get(page).params.id;
@@ -156,7 +168,7 @@
       await fetchCourse();
     } catch (err: unknown) {
       const error = err as ApiError;
-      actionMessage = error.message || '删除失败';
+      actionMessage = error.message || "删除失败";
     } finally {
       actionLoading = false;
     }
@@ -190,7 +202,7 @@
       await fetchCourse();
     } catch (err: unknown) {
       const error = err as ApiError;
-      editLessonError = error.message || '更新失败';
+      editLessonError = error.message || "更新失败";
     } finally {
       editLessonLoading = false;
     }
@@ -206,13 +218,17 @@
       await fetchCourse();
     } catch (err: unknown) {
       const error = err as ApiError;
-      actionMessage = error.message || '删除失败';
+      actionMessage = error.message || "删除失败";
     } finally {
       actionLoading = false;
     }
   }
 
-  function startEditLesson(sectionId: string, lesson: Lesson, sectionTitle: string) {
+  function startEditLesson(
+    sectionId: string,
+    lesson: Lesson,
+    sectionTitle: string,
+  ) {
     editLessonSectionId = sectionId;
     editLessonId = lesson._id || null;
     editLessonTitle = lesson.title;
@@ -250,7 +266,7 @@
         content: addLessonContent,
         text: "",
         sentences: [],
-        sectionId: addLessonSectionId
+        sectionId: addLessonSectionId,
       });
       showAddLessonModal = false;
       addLessonSectionId = null;
@@ -260,7 +276,7 @@
       await fetchCourse();
     } catch (err: unknown) {
       const error = err as ApiError;
-      addLessonError = error.message || '创建失败';
+      addLessonError = error.message || "创建失败";
     } finally {
       addLessonLoading = false;
     }
@@ -312,7 +328,14 @@
   {/if}
   <div class="sections-header">
     <h2 class="sections-title">Sections</h2>
-    <span class="add-section-icon" title="Add Section" on:click={openSectionModal} tabindex="0" role="button" aria-label="Add Section">+</span>
+    <span
+      class="add-section-icon"
+      title="Add Section"
+      on:click={openSectionModal}
+      tabindex="0"
+      role="button"
+      aria-label="Add Section">+</span
+    >
   </div>
   <AddSectionModal
     open={showSectionModal}
@@ -363,18 +386,79 @@
           <div class="section-header">
             <div class="section-title large">{section.title}</div>
             <div class="section-actions">
-              <span class="add-lesson-icon" on:click={() => openAddLessonModal(String(section._id), section.title || '')} aria-label={`Add lesson to section ${section.title}`}
-                tabindex="0" role="button">
+              <span
+                class="add-lesson-icon"
+                on:click={() =>
+                  openAddLessonModal(String(section._id), section.title || "")}
+                aria-label={`Add lesson to section ${section.title}`}
+                tabindex="0"
+                role="button"
+              >
                 <!-- Lucide Plus-Circle icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  ><circle cx="12" cy="12" r="10" /><line
+                    x1="12"
+                    y1="8"
+                    x2="12"
+                    y2="16"
+                  /><line x1="8" y1="12" x2="16" y2="12" /></svg
+                >
               </span>
-              <span class="edit-icon" on:click={() => openEditSectionModal(section)} aria-label="Edit section">
+              <span
+                class="edit-icon"
+                on:click={() => openEditSectionModal(section)}
+                aria-label="Edit section"
+              >
                 <!-- Lucide Pencil icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.232 5.232a3 3 0 1 1 4.243 4.243L7.5 21.5l-4 1 1-4 14.732-14.732z"></path></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  ><path
+                    d="M15.232 5.232a3 3 0 1 1 4.243 4.243L7.5 21.5l-4 1 1-4 14.732-14.732z"
+                  ></path></svg
+                >
               </span>
-              <span class="delete-icon" on:click={() => deleteSection(section._id)} aria-label="Delete section">
+              <span
+                class="delete-icon"
+                on:click={() => section._id && deleteSection(section._id)}
+                aria-label="Delete section"
+              >
                 <!-- Lucide Trash-2 icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  ><path d="M3 6h18" /><path
+                    d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><line
+                    x1="10"
+                    y1="11"
+                    x2="10"
+                    y2="17"
+                  /><line x1="14" y1="11" x2="14" y2="17" /></svg
+                >
               </span>
             </div>
           </div>
@@ -389,9 +473,32 @@
                       <span class="lesson-content">{lesson.content}</span>
                     </div>
                     <div class="lesson-actions">
-                      <button on:click={() => startEditLesson(String(section._id), lesson, section.title || '')} style="margin-left:1em;">Edit</button>
-                      <button on:click={() => deleteLesson(String(section._id), String(lesson._id))} style="margin-left:0.5em;" aria-label="Delete lesson">Delete</button>
-                      <button on:click|stopPropagation={() => goto(`/courses/${course._id}/sections/${section._id}/lessons/${lesson._id}`)} style="margin-left:0.5em;" class="btn-study">学习</button>
+                      <button
+                        on:click={() =>
+                          startEditLesson(
+                            String(section._id),
+                            lesson,
+                            section.title || "",
+                          )}
+                        style="margin-left:1em;">Edit</button
+                      >
+                      <button
+                        on:click={() =>
+                          deleteLesson(String(section._id), String(lesson._id))}
+                        style="margin-left:0.5em;"
+                        aria-label="Delete lesson">Delete</button
+                      >
+                      <button
+                        on:click|stopPropagation={() => {
+                          if (course?._id && section?._id && lesson?._id) {
+                            goto(
+                              `/courses/${course._id}/sections/${section._id}/lessons/${lesson._id}`,
+                            );
+                          }
+                        }}
+                        style="margin-left:0.5em;"
+                        class="btn-study">学习</button
+                      >
                     </div>
                   </li>
                 {/each}
@@ -447,7 +554,8 @@
     align-items: center;
     justify-content: center;
   }
-  .add-section-icon:hover, .add-section-icon:focus {
+  .add-section-icon:hover,
+  .add-section-icon:focus {
     color: #059669;
     background: #e0f2f1;
     outline: none;
@@ -458,11 +566,11 @@
     padding: 1.5em;
     margin-bottom: 1.5em;
     background: #f9fafb;
-    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.03);
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.03);
     transition: box-shadow 0.2s;
   }
   .section-card:hover {
-    box-shadow: 0 4px 16px 0 rgba(0,0,0,0.07);
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.07);
   }
   .section-header {
     display: flex;
@@ -510,7 +618,7 @@
     border-radius: 6px;
     padding: 0.7em 1em;
     margin-bottom: 0.5em;
-    box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
+    box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.04);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -530,7 +638,8 @@
     margin-bottom: 0.7em;
     align-items: center;
   }
-  input[type="text"], input[type="search"] {
+  input[type="text"],
+  input[type="search"] {
     padding: 0.4em 0.7em;
     border: 1px solid #d1d5db;
     border-radius: 4px;
@@ -540,7 +649,8 @@
     outline: none;
     transition: border 0.15s;
   }
-  input[type="text"]:focus, input[type="search"]:focus {
+  input[type="text"]:focus,
+  input[type="search"]:focus {
     border: 1.5px solid #2563eb;
   }
   .feedback {
@@ -564,7 +674,9 @@
     cursor: pointer;
     user-select: none;
     margin-left: 0;
-    transition: color 0.15s, background 0.15s;
+    transition:
+      color 0.15s,
+      background 0.15s;
     border-radius: 50%;
     width: 1.8em;
     height: 1.8em;
@@ -572,7 +684,8 @@
     align-items: center;
     justify-content: center;
   }
-  .edit-icon:hover, .edit-icon:focus {
+  .edit-icon:hover,
+  .edit-icon:focus {
     color: #2563eb; /* Skeleton 主色 */
     background: #e0f2f1;
     outline: none;
@@ -583,7 +696,9 @@
     cursor: pointer;
     user-select: none;
     margin-left: 0;
-    transition: color 0.15s, background 0.15s;
+    transition:
+      color 0.15s,
+      background 0.15s;
     border-radius: 50%;
     width: 1.8em;
     height: 1.8em;
@@ -591,7 +706,8 @@
     align-items: center;
     justify-content: center;
   }
-  .delete-icon:hover, .delete-icon:focus {
+  .delete-icon:hover,
+  .delete-icon:focus {
     color: #dc2626; /* Skeleton 红色 */
     background: #fde8e8;
     outline: none;
@@ -601,7 +717,9 @@
     color: #10b981; /* Skeleton 绿色 */
     cursor: pointer;
     user-select: none;
-    transition: color 0.15s, background 0.15s;
+    transition:
+      color 0.15s,
+      background 0.15s;
     border-radius: 50%;
     width: 1.8em;
     height: 1.8em;
@@ -610,7 +728,8 @@
     justify-content: center;
     margin-left: 0;
   }
-  .add-lesson-icon:hover, .add-lesson-icon:focus {
+  .add-lesson-icon:hover,
+  .add-lesson-icon:focus {
     color: #059669;
     background: #e0f2f1;
     outline: none;

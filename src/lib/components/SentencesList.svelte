@@ -1,8 +1,8 @@
 <script lang="ts">
-  import SentenceItem from '$lib/components/SentenceItem.svelte';
-  import type { LessonSentence } from '$lib/models/course';
+  import SentenceItem from "$lib/components/SentenceItem.svelte";
+  import type { LessonSentence } from "$lib/models/course";
   export let sentences: LessonSentence[];
-  export let mode: 'listen' | 'read' | 'dictation';
+  export let mode: "listen" | "read" | "dictation";
   export let playingIdx: number;
   export let onPlay: (idx: number) => void;
   export let updateLessonSentences: () => void;
@@ -18,16 +18,18 @@
     <SentenceItem
       sentence={s}
       idx={i}
-      mode={mode}
-      playingIdx={playingIdx}
-      onPlay={onPlay}
-      updateLessonSentences={updateLessonSentences}
+      {mode}
+      {playingIdx}
+      {onPlay}
+      {updateLessonSentences}
       dictationInputs={dictationInputs[i]}
       dictationResult={dictationResults[i]}
       inputRefs={dictationInputRefs[i]}
-      checkDictation={checkDictation}
-      playKeySound={playKeySound}
-      onInputChange={(wi: number, value: string) => { dictationInputs[i][wi] = value; }}
+      {checkDictation}
+      {playKeySound}
+      onInputChange={(wi: number, value: string) => {
+        dictationInputs[i][wi] = value;
+      }}
     />
   {/each}
-</ul> 
+</ul>

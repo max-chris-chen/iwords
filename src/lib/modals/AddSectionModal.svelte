@@ -3,11 +3,11 @@
   export let onClose: (() => void) | undefined;
   export let onEdit: ((payload: { title: string }) => void) | undefined;
   export let open: boolean;
-  export let newTitle: string = '';
-  export let error: string = '';
+  export let newTitle: string = "";
+  export let error: string = "";
   export let loading: boolean = false;
   export let editMode: boolean = false;
-  export let editTitle: string = '';
+  export let editTitle: string = "";
 
   function handleAdd() {
     if (onAdd) onAdd();
@@ -22,9 +22,17 @@
 
 {#if open}
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-    <div class="bg-white rounded-2xl p-8 w-full max-w-md relative border-2 border-black shadow-lg flex flex-col items-stretch min-w-[320px]">
-      <button class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl font-bold" on:click={handleClose} aria-label="Close">&times;</button>
-      <h3 class="text-2xl font-bold text-center mb-6 text-primary-700">{editMode ? '编辑 Section' : '添加 Section'}</h3>
+    <div
+      class="bg-white rounded-2xl p-8 w-full max-w-md relative border-2 border-black shadow-lg flex flex-col items-stretch min-w-[320px]"
+    >
+      <button
+        class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl font-bold"
+        on:click={handleClose}
+        aria-label="Close">&times;</button
+      >
+      <h3 class="text-2xl font-bold text-center mb-6 text-primary-700">
+        {editMode ? "编辑 Section" : "添加 Section"}
+      </h3>
       <div class="flex gap-2 mb-4 items-center">
         {#if editMode}
           <input
@@ -33,7 +41,7 @@
             bind:value={editTitle}
             aria-label="Section title"
             autofocus
-            on:keydown={(e) => e.key === 'Enter' && handleEdit()}
+            on:keydown={(e) => e.key === "Enter" && handleEdit()}
           />
         {:else}
           <input
@@ -42,7 +50,7 @@
             bind:value={newTitle}
             aria-label="Section title"
             autofocus
-            on:keydown={(e) => e.key === 'Enter' && handleAdd()}
+            on:keydown={(e) => e.key === "Enter" && handleAdd()}
           />
         {/if}
       </div>
@@ -51,11 +59,21 @@
       {/if}
       <div class="flex gap-3 justify-end mt-2">
         {#if editMode}
-          <button type="button" class="btn-gradient flex items-center gap-2 px-6 py-2 font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-full justify-center mt-2 disabled:opacity-60" on:click={handleEdit} disabled={loading}>
+          <button
+            type="button"
+            class="btn-gradient flex items-center gap-2 px-6 py-2 font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-full justify-center mt-2 disabled:opacity-60"
+            on:click={handleEdit}
+            disabled={loading}
+          >
             {loading ? "保存中..." : "保存"}
           </button>
         {:else}
-          <button type="button" class="btn-gradient flex items-center gap-2 px-6 py-2 font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-full justify-center mt-2 disabled:opacity-60" on:click={handleAdd} disabled={loading}>
+          <button
+            type="button"
+            class="btn-gradient flex items-center gap-2 px-6 py-2 font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-full justify-center mt-2 disabled:opacity-60"
+            on:click={handleAdd}
+            disabled={loading}
+          >
             {loading ? "添加中..." : "添加"}
           </button>
         {/if}

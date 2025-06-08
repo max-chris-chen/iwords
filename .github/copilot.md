@@ -13,10 +13,8 @@ For details, see: https://docs.github.com/en/copilot/customizing-copilot/adding-
 - Always return proper HTTP status codes and JSON responses for API endpoints.
 - Use TypeScript throughout. Place shared types in `src/lib/models/`.
 - Never expose sensitive user data. Always check course ownership before returning or modifying data.
-- Use Tailwind CSS for styling Svelte components in `src/lib/`.
 - Use async/await for all asynchronous code.
 - Add comments for complex logic and keep code concise.
-- For UI elements (buttons, tables, forms, etc.), use Tailwind CSS utility classes and follow the existing style conventions in the app. Buttons should be accessible, visually consistent, and use Tailwind classes for color, padding, and hover/focus states. Tables should be responsive and styled with Tailwind for clarity and readability. Maintain a clean, modern look for all UI components.
 
 ## What programming style or best practices should Copilot follow?
 
