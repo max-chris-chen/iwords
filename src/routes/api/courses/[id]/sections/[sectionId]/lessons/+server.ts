@@ -103,3 +103,47 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
     return new Response(message, { status: 500 });
   }
 };
+
+export const GET: RequestHandler = async ({ params, locals }) => {
+  try {
+    if (!locals.user?._id) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    const db = await getDb();
+    let courseId: ObjectId;
+    let sectionId: ObjectId;
+    try {
+      courseId = new ObjectId(params.id);
+      sectionId = new ObjectId(params.sectionId);
+    } catch {
+      return new Response("Invalid id", { status: 400 });
+    }
+
+    const course = await db
+      .collection("courses")
+      .findOne({ _id: courseId, user: locals.user._id });
+    if (!course) {
+      return new Response("Not found", { status: 404 });
+    }
+
+    const section = await db
+      .collection("sections")
+      .findOne({ _id: sectionId, courseId });
+    if (!section) {
+      return new Response("Section not found", { status: 404 });
+    }
+
+    const lessons = await db
+      .collection("lessons")
+      .find({ sectionId })
+      .toArray();
+
+    return new Response(JSON.stringify(lessons), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to fetch lessons";
+    return new Response(message, { status: 500 });
+  }
+};

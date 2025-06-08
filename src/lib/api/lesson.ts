@@ -8,8 +8,9 @@ export async function fetchLesson(
   id: string,
   sectionId: string,
   lessonId: string,
+  fetchFn: typeof fetch = fetch,
 ): Promise<Lesson> {
-  const res = await fetch(
+  const res = await fetchFn(
     `/api/courses/${id}/sections/${sectionId}/lessons/${lessonId}`,
   );
   if (!res.ok) throw new Error(await res.text());

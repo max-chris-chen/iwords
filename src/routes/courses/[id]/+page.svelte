@@ -10,6 +10,7 @@
     createLesson,
     updateLesson,
     deleteLesson as apiDeleteLesson,
+    fetchLessons,
   } from "$lib/api/lesson";
   import {
     createSection,
@@ -134,7 +135,17 @@
     try {
       const res = await fetch(`/api/courses/${id}`);
       if (!res.ok) throw new Error(await res.text());
-      course = await res.json();
+      const courseData: CourseWithSections = await res.json();
+      if (courseData.sections) {
+        await Promise.all(
+          courseData.sections.map(async (section) => {
+            if (section._id) {
+              section.lessons = await fetchLessons(id, section._id);
+            }
+          }),
+        );
+      }
+      course = courseData;
     } catch (e: unknown) {
       const apiError = e as Error;
       error = apiError.message || "Failed to load course details";
@@ -419,7 +430,7 @@
                   points="12 6 12 12 16 14"
                 /></svg
               >
-              <span>{course.totalHours || 18} 课时</span>
+              <span>{course.totalHours || 0} 课时</span>
             </span>
             <span class="stat">
               <svg
@@ -471,12 +482,33 @@
               <li class="section-item">
                 <div class="section-item-header">
                   <div class="section-item-title">
-                    <h3>第一章: {section.title}</h3>
+                    <h3>第{i + 1}章: {section.title}</h3>
                     <p>
-                      {section.description || "学习在购物时的常用英语表达"}
+                      {section.description || ""}
                     </p>
                   </div>
                   <div class="section-item-actions">
+                    <button
+                      class="btn-icon"
+                      aria-label="Add lesson"
+                      on:click={() =>
+                        section._id &&
+                        openAddLessonModal(section._id, section.title)}
+                    >
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                    </button>
                     <button
                       class="btn-icon"
                       aria-label="Edit section"
@@ -548,22 +580,24 @@
                           <span class="lesson-title">{lesson.title}</span>
                         </div>
                         <div class="lesson-actions">
-                          <span class="lesson-duration">
-                            <svg
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              ><circle cx="12" cy="12" r="10" /><polyline
-                                points="12 6 12 12 16 14"
-                              /></svg
-                            >
-                            <span>{lesson.duration || "15 分钟"}</span>
-                          </span>
+                          {#if lesson.duration}
+                            <span class="lesson-duration">
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                ><circle cx="12" cy="12" r="10" /><polyline
+                                  points="12 6 12 12 16 14"
+                                /></svg
+                              >
+                              <span>{lesson.duration}</span>
+                            </span>
+                          {/if}
                           <button
                             class="btn-start-lesson"
                             on:click|stopPropagation={() => {
@@ -582,6 +616,8 @@
                       </li>
                     {/each}
                   </ul>
+                {:else}
+                  <p>No lessons in this section.</p>
                 {/if}
               </li>
             {/each}

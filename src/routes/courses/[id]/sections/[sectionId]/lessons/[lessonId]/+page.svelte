@@ -1,457 +1,423 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import { onMount, tick } from "svelte";
-  import SentencesList from "$lib/components/SentencesList.svelte";
-  import type { Lesson } from "$lib/models/course";
-  import { fetchLesson } from "$lib/api/lesson";
+  import type { Lesson, LessonSentence } from "$lib/models/course";
 
-  let lesson: Lesson | null = null;
-  let loading = true;
-  let err = "";
-  let playingIdx = -1;
-  let audio: HTMLAudioElement | null = null;
-  let playbackRate = "1.0";
-  let mode: "listen" | "read" | "dictation" = "listen";
-  let dictationInputs: string[][] = [];
-  let dictationResults: (boolean | null)[] = [];
-  let isPlayingAll = false;
-  let dictationInputRefs: Array<Array<HTMLInputElement | null>> = [];
-  let audioCtx: AudioContext | null = null;
+  export let data;
 
-  onMount(async () => {
-    loading = true;
-    err = "";
-    const { id, sectionId, lessonId } = $page.params;
-    try {
-      lesson = await fetchLesson(id, sectionId, lessonId);
-      // 初始化每个句子的 _currentWordIdx
-      if (lesson?.sentences?.length) {
-        for (const s of lesson.sentences) {
-          s._currentWordIdx = -1;
-        }
-      }
-    } catch {
-      err = "加载失败";
-    } finally {
-      loading = false;
-    }
-  });
+  let { lesson, courseId } = data;
 
-  function updateLessonSentences() {
-    // 只在非dictation模式下才整体替换，避免input重建导致焦点丢失
-    if (mode !== "dictation" && lesson) {
-      lesson = { ...lesson, sentences: [...lesson.sentences] };
+  let currentSentenceIndex = 0;
+  let learningMode = "listening"; // listening, reading, writing
+  let showSentence = false;
+
+  $: sentences =
+    lesson?.sentences?.map((s) => (typeof s === "string" ? s : s.text)) || [];
+  $: currentSentence = sentences[currentSentenceIndex] || "";
+  $: maskedSentence = currentSentence.replace(/[a-zA-Z]/g, "*");
+
+  function nextSentence() {
+    if (lesson && currentSentenceIndex < sentences.length - 1) {
+      currentSentenceIndex++;
+      showSentence = false;
     }
   }
 
-  function playSentence(idx: number) {
-    if (!lesson?.sentences?.[idx]?.audioUrl) return;
-    if (audio) {
-      audio.pause();
-      audio = null;
+  function prevSentence() {
+    if (currentSentenceIndex > 0) {
+      currentSentenceIndex--;
+      showSentence = false;
     }
-    playingIdx = idx;
-    const s = lesson.sentences[idx];
-    // 兼容 caption.chunks 结构
-    if (s.caption && Array.isArray(s.caption.chunks)) {
-      s._currentWordIdx = -1;
-    }
-    lesson.sentences.forEach((x) => (x._currentWordIdx = -1));
-    updateLessonSentences();
-
-    audio = new Audio(s.audioUrl);
-    audio.playbackRate = +playbackRate;
-
-    // 用于取消预设的单词高亮定时器
-    let highlightTimers: number[] = [];
-
-    // 清理所有定时器
-    function clearTimers() {
-      highlightTimers.forEach((id) => window.clearTimeout(id));
-      highlightTimers = [];
-    }
-
-    if (s.caption && Array.isArray(s.caption.chunks)) {
-      // 预先安排所有单词的定时高亮
-      function scheduleWordHighlights() {
-        clearTimers();
-        const currentTime = audio!.currentTime * 1000;
-        s.caption!.chunks.forEach((chunk, index) => {
-          const startTime = chunk.start_time;
-          const timeUntilWord = startTime - currentTime;
-          if (timeUntilWord > 50) {
-            const timerId = window.setTimeout(() => {
-              if (
-                audio &&
-                !audio.paused &&
-                audio.currentTime * 1000 >= chunk.start_time
-              ) {
-                s._currentWordIdx = index;
-                updateLessonSentences();
-              }
-            }, timeUntilWord / +playbackRate);
-            highlightTimers.push(timerId);
-          }
-        });
-      }
-      audio.onloadedmetadata = () => {
-        s._currentWordIdx = -1;
-        updateLessonSentences();
-      };
-      audio.ontimeupdate = () => {
-        if (audio!.readyState < 2 || audio!.paused) return;
-        const t = audio!.currentTime * 1000;
-        // 只有在真正到达第一个chunk的start_time时才允许高亮
-        if (t < s.caption!.chunks[0].start_time) {
-          if (s._currentWordIdx !== -1) {
-            s._currentWordIdx = -1;
-            updateLessonSentences();
-          }
-          return;
-        }
-        for (let i = 0; i < s.caption!.chunks.length; i++) {
-          const chunk = s.caption!.chunks[i];
-          if (t >= chunk.start_time && t < chunk.end_time) {
-            if (s._currentWordIdx !== i) {
-              s._currentWordIdx = i;
-              updateLessonSentences();
-              scheduleWordHighlights();
-            }
-            return;
-          }
-        }
-        if (s._currentWordIdx !== -1) {
-          const lastChunk = s.caption!.chunks[s.caption!.chunks.length - 1];
-          if (t >= lastChunk.end_time) {
-            s._currentWordIdx = -1;
-            updateLessonSentences();
-          }
-        }
-      };
-      audio.onplay = () => {
-        // 播放时强制重置高亮，防止未到第一个chunk时高亮
-        s._currentWordIdx = -1;
-        updateLessonSentences();
-        scheduleWordHighlights();
-      };
-      audio.onended = () => {
-        clearTimers();
-        if (isPlayingAll) {
-          // 顺序播放时不重置playingIdx，由playSentenceSequentially处理
-          return;
-        }
-        playingIdx = -1;
-        s._currentWordIdx = -1;
-        updateLessonSentences();
-      };
-      audio.onpause = clearTimers;
-      audio.onratechange = scheduleWordHighlights;
-    } else {
-      audio.onended = () => {
-        if (isPlayingAll) {
-          // 顺序播放时不重置playingIdx，由playSentenceSequentially处理
-          return;
-        }
-        playingIdx = -1;
-      };
-    }
-    // 确保在开始播放前正确设置初始状态
-    s._currentWordIdx = -1;
-    updateLessonSentences();
-    audio.play().catch((error: unknown) => {
-      console.error("播放失败:", error);
-      playingIdx = -1;
-      updateLessonSentences();
-    });
-  }
-
-  function playKeySound() {
-    if (!audioCtx) {
-      try {
-        const AudioContextClass =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext;
-        audioCtx = new AudioContextClass();
-      } catch {
-        console.error("Web Audio API is not supported in this browser");
-        return;
-      }
-    }
-    // 关键：每次都检查状态
-    if (audioCtx.state === "suspended") {
-      audioCtx.resume();
-    }
-
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(1200, audioCtx.currentTime);
-    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-
-    gainNode.gain.exponentialRampToValueAtTime(
-      0.0001,
-      audioCtx.currentTime + 0.05,
-    );
-
-    oscillator.start(audioCtx.currentTime);
-    oscillator.stop(audioCtx.currentTime + 0.05);
-  }
-
-  function setMode(newMode: typeof mode) {
-    mode = newMode;
-    if (mode === "dictation") {
-      if (!audioCtx) {
-        try {
-          const AudioContextClass =
-            window.AudioContext ||
-            (window as unknown as { webkitAudioContext: typeof AudioContext })
-              .webkitAudioContext;
-          audioCtx = new AudioContextClass();
-        } catch {
-          console.error("Web Audio API is not supported in this browser");
-          return;
-        }
-      }
-      if (audioCtx?.state === "suspended") {
-        audioCtx.resume();
-      }
-
-      if (lesson?.sentences?.length) {
-        // Initialize input arrays
-        dictationInputs = lesson.sentences.map((s) =>
-          s.caption && Array.isArray(s.caption.chunks)
-            ? Array(s.caption.chunks.length).fill("")
-            : [""],
-        );
-
-        // Reset the results array
-        dictationResults = Array(lesson.sentences.length).fill(null);
-
-        // Clear and initialize refs array for each sentence
-        dictationInputRefs = lesson.sentences.map((s) =>
-          s.caption && Array.isArray(s.caption.chunks)
-            ? Array(s.caption.chunks.length).fill(null)
-            : [null],
-        );
-      }
-    }
-  }
-
-  function stripPunct(str: string) {
-    return str.replace(/[\p{P}\p{S}]/gu, "");
-  }
-
-  function checkDictation(idx: number) {
-    if (!lesson?.sentences?.[idx]) return;
-    const s = lesson.sentences[idx];
-    if (s.caption && Array.isArray(s.caption.chunks)) {
-      const answerWords = s.caption.chunks.map((w) =>
-        s.text.slice(w.start, w.end),
-      );
-      const inputWords = dictationInputs[idx];
-      dictationResults[idx] = inputWords.every(
-        (w, i) =>
-          stripPunct(w.trim().toLowerCase()) ===
-          stripPunct(answerWords[i].toLowerCase()),
-      );
-    } else {
-      const answer = s.text.trim();
-      const input = dictationInputs[idx][0];
-      dictationResults[idx] =
-        stripPunct(input.trim().toLowerCase()) ===
-        stripPunct(answer.toLowerCase());
-    }
-  }
-
-  function playAllSentences() {
-    if (!lesson?.sentences?.length) return;
-    isPlayingAll = true;
-    playSentenceSequentially(0);
-  }
-
-  function pauseAll() {
-    isPlayingAll = false;
-    if (audio) {
-      audio.pause();
-    }
-  }
-
-  function resumeAll() {
-    if (!isPlayingAll && playingIdx !== -1 && audio && audio.paused) {
-      isPlayingAll = true;
-      audio.play();
-      // 重新绑定顺序播放逻辑
-      audio.onended = () => {
-        if (isPlayingAll) {
-          if (lesson && playingIdx + 1 < lesson.sentences.length) {
-            playSentenceSequentially(playingIdx + 1);
-          } else {
-            isPlayingAll = false;
-            playingIdx = -1;
-            updateLessonSentences();
-          }
-        }
-      };
-    }
-  }
-
-  function playSentenceSequentially(idx: number) {
-    if (!isPlayingAll || !lesson?.sentences?.[idx]?.audioUrl) {
-      isPlayingAll = false;
-      playingIdx = -1;
-      updateLessonSentences();
-      return;
-    }
-    playSentence(idx);
-    if (audio) {
-      audio.onended = () => {
-        if (isPlayingAll) {
-          if (lesson && idx + 1 < lesson.sentences.length) {
-            playSentenceSequentially(idx + 1);
-          } else {
-            isPlayingAll = false;
-            playingIdx = -1;
-            updateLessonSentences();
-          }
-        }
-      };
-    }
-  }
-
-  // 监听mode和lesson切换后自动聚焦第一个输入框
-  $: if (mode === "dictation" && lesson?.sentences?.length) {
-    tick().then(() => {
-      if (dictationInputRefs[0]?.[0]) {
-        dictationInputRefs[0][0].focus();
-      }
-    });
   }
 </script>
 
-{#if loading}
-  <p>加载中...</p>
-{:else if err}
-  <div style="color:red">{err}</div>
-{:else if lesson}
-  <h1 class="text-2xl font-bold mb-4">{lesson.title}</h1>
-  <div class="mb-4 text-gray-700">{lesson.content}</div>
-  <div style="margin-bottom:1em;display:flex;gap:1em">
-    <button on:click={() => setMode("listen")} class:active={mode === "listen"}
-      >听力</button
-    >
-    <button on:click={() => setMode("read")} class:active={mode === "read"}
-      >跟读</button
-    >
-    <button
-      on:click={() => setMode("dictation")}
-      class:active={mode === "dictation"}>听写</button
-    >
-  </div>
-  <div style="margin-bottom:1em">
-    <label for="playbackRate">播放速度：</label>
-    <select id="playbackRate" bind:value={playbackRate}>
-      <option value="0.75">0.75x</option>
-      <option value="1.0">1x</option>
-      <option value="1.25">1.25x</option>
-      <option value="1.5">1.5x</option>
-      <option value="2">2x</option>
-    </select>
-  </div>
-  {#if mode === "listen"}
-    <div style="margin-bottom:1em">
-      <button
-        on:click={playAllSentences}
-        disabled={isPlayingAll || playingIdx !== -1}>播放全部</button
+<div class="page-container">
+  <header class="page-header">
+    <a href={`/courses/${courseId}`} class="back-link">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="lucide lucide-chevron-left"
+        ><path d="m15 18-6-6 6-6" /></svg
       >
-      <button on:click={pauseAll} disabled={!isPlayingAll && playingIdx === -1}
-        >暂停</button
-      >
-      <button
-        on:click={resumeAll}
-        disabled={isPlayingAll || playingIdx === -1 || !audio || !audio.paused}
-        >继续</button
-      >
+      <span>返回课程</span>
+    </a>
+  </header>
+
+  <main class="learn-container">
+    <div class="learn-header-card">
+      <div class="learn-title-progress">
+        <h1>{lesson.title}</h1>
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div
+              class="progress-bar-inner"
+              style={`width: ${((currentSentenceIndex + 1) / sentences.length) * 100}%`}
+            ></div>
+          </div>
+          <span class="progress-text"
+            >{currentSentenceIndex + 1} / {sentences.length}</span
+          >
+        </div>
+      </div>
     </div>
-  {/if}
-  {#if lesson.sentences?.length}
-    <SentencesList
-      sentences={lesson.sentences}
-      {mode}
-      {playingIdx}
-      onPlay={playSentence}
-      {updateLessonSentences}
-      {dictationInputs}
-      {dictationResults}
-      {dictationInputRefs}
-      {checkDictation}
-      {playKeySound}
-    />
-  {/if}
-{/if}
+
+    <div class="card">
+      <h2>学习模式</h2>
+      <div class="mode-switcher">
+        <button
+          class:active={learningMode === 'listening'}
+          on:click={() => (learningMode = 'listening')}>听力模式</button
+        >
+        <button
+          class:active={learningMode === 'reading'}
+          on:click={() => (learningMode = 'reading')}>跟读模式</button
+        >
+        <button
+          class:active={learningMode === 'writing'}
+          on:click={() => (learningMode = 'writing')}>听写模式</button
+        >
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="playback-controls">
+        <button class="btn-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-play-circle"
+            ><circle cx="12" cy="12" r="10" /><polygon
+              points="10 8 16 12 10 16 10 8"
+            /></svg
+          >
+          <span>播放</span>
+        </button>
+        <div class="sound-wave">
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card sentence-card">
+      <p class="sentence-text">
+        {#if showSentence}
+          {currentSentence}
+        {:else}
+          {maskedSentence}
+        {/if}
+      </p>
+      <button class="btn-icon btn-reveal" on:click={() => (showSentence = true)}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="lucide lucide-eye"
+          ><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle
+            cx="12"
+            cy="12"
+            r="3"
+          /></svg
+        >
+        <span>查看</span>
+      </button>
+    </div>
+
+    <div class="navigation-buttons">
+      <button
+        class="btn-nav"
+        on:click={prevSentence}
+        disabled={currentSentenceIndex === 0}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="lucide lucide-chevron-left"
+          ><path d="m15 18-6-6 6-6" /></svg
+        >
+        <span>上一句</span>
+      </button>
+      <button
+        class="btn-nav btn-primary"
+        on:click={nextSentence}
+        disabled={currentSentenceIndex === sentences.length - 1}
+      >
+        <span>下一句</span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="lucide lucide-chevron-right"
+          ><path d="m9 18 6-6-6-6" /></svg
+        >
+      </button>
+    </div>
+  </main>
+</div>
 
 <style>
-  h1 {
-    margin-bottom: 0.7em;
+  :root {
+    --primary-color: #4f46e5;
+    --primary-hover-color: #4338ca;
+    --text-primary: #1f2937;
+    --text-secondary: #4b5563;
+    --text-light: #6b7280;
+    --bg-color: #f9fafb;
+    --card-bg-color: #ffffff;
+    --border-color: #e5e7eb;
+    --blue-bg-light: #eef2ff;
   }
-  .word {
-    transition: background 0.2s;
-    padding: 0 2px;
+  .page-container {
+    padding: 1rem 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: var(--bg-color);
+    font-family:
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      Helvetica,
+      Arial,
+      sans-serif,
+      "Apple Color Emoji",
+      "Segoe UI Emoji",
+      "Segoe UI Symbol";
   }
-  .word.active {
-    background: #ffe082;
-    border-radius: 6px;
-    box-shadow: 0 1px 4px 0 rgba(67, 198, 172, 0.1);
+  .page-header {
+    margin-bottom: 1.5rem;
   }
-  .active {
-    background: #1976d2;
-    color: #fff;
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
   }
-  input[type="text"] {
-    font-size: 1em;
-    padding: 2px 6px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+  .back-link:hover {
+    color: var(--text-primary);
   }
-  .eye-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.1em;
-    margin-left: 0.5em;
-    vertical-align: middle;
-  }
-  .dictation-form {
+  .learn-container {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 0.5em;
-    margin-bottom: 0.2em;
+    flex-direction: column;
+    gap: 1.5rem;
   }
-  .dict-word-input {
+  .card {
+    background-color: var(--card-bg-color);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-color);
+  }
+  .learn-header-card {
+    background-color: var(--card-bg-color);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-color);
+  }
+  .learn-title-progress h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 1rem;
+    color: var(--text-primary);
+  }
+  .progress-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .progress-bar {
+    flex-grow: 1;
+    height: 0.75rem;
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    background-color: var(--primary-color);
+    border-radius: 9999px;
+    transition: width 0.3s ease-in-out;
+  }
+  .progress-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .card h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 1rem;
+    color: var(--text-primary);
+  }
+  .mode-switcher {
+    display: flex;
+    gap: 0.5rem;
+    background-color: var(--bg-color);
+    padding: 0.25rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+  }
+  .mode-switcher button {
+    flex-grow: 1;
+    padding: 0.5rem 1rem;
     border: none;
-    border-bottom: 2px solid #888;
-    background: none;
-    text-align: center;
-    margin: 0 2px;
-    font-size: 1.1em;
-    letter-spacing: 2px;
-    outline: none;
-    width: auto;
-    min-width: 3em;
-    max-width: 10em;
-    flex: 0 1 auto;
-    font-family: inherit;
-    padding: 0 2px;
-    box-sizing: border-box;
-    word-break: break-all;
+    background-color: transparent;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
-  .dictation-form button[type="submit"] {
-    margin-top: 0.5em;
-    flex-shrink: 0;
+  .mode-switcher button.active {
+    background-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  }
+  .playback-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .btn-icon:hover {
+    background-color: #f3f4f6;
+  }
+  .sound-wave {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 24px;
+  }
+  .sound-wave .bar {
+    width: 3px;
+    background-color: var(--text-light);
+    animation: sound 0.8s linear infinite alternate;
+  }
+  .sound-wave .bar:nth-child(1) {
+    height: 10px;
+    animation-delay: -0.7s;
+  }
+  .sound-wave .bar:nth-child(2) {
+    height: 16px;
+    animation-delay: -0.5s;
+  }
+  .sound-wave .bar:nth-child(3) {
+    height: 20px;
+    animation-delay: -0.3s;
+  }
+  .sound-wave .bar:nth-child(4) {
+    height: 14px;
+    animation-delay: -0.6s;
+  }
+  .sound-wave .bar:nth-child(5) {
+    height: 8px;
+    animation-delay: -0.4s;
+  }
+  @keyframes sound {
+    0% {
+      height: 4px;
+    }
+    100% {
+      height: 20px;
+    }
+  }
+  .sentence-card {
+    text-align: center;
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+  }
+  .sentence-text {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin: 0 0 1.5rem;
+    letter-spacing: 2px;
+    min-height: 40px;
+  }
+  .btn-reveal {
+    margin: 0 auto;
+  }
+  .navigation-buttons {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .btn-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    background-color: var(--card-bg-color);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    color: var(--text-secondary);
+  }
+  .btn-nav:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-nav.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+  .btn-nav.btn-primary:hover:not(:disabled) {
+    background-color: var(--primary-hover-color);
+  }
+  .btn-nav:not(.btn-primary):hover:not(:disabled) {
+    background-color: #f3f4f6;
   }
 </style>
