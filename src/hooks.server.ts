@@ -1,6 +1,7 @@
 import { connectToDatabase } from "$lib/mongodb";
 import type { Handle } from "@sveltejs/kit";
 import { ObjectId } from "mongodb";
+import { redirect } from "@sveltejs/kit";
 
 export const handle: Handle = async ({ event, resolve }) => {
   const sessionId = event.cookies.get("sessionId");
@@ -33,6 +34,16 @@ export const handle: Handle = async ({ event, resolve }) => {
       console.error("Error fetching user from session:", error);
       // Optionally clear the cookie if session is invalid
       // event.cookies.delete('sessionId', { path: '/' });
+    }
+  }
+
+  if (!event.locals.user) {
+    if (
+      event.url.pathname !== "/login" &&
+      event.url.pathname !== "/register" &&
+      !event.url.pathname.startsWith("/api")
+    ) {
+      throw redirect(303, "/login");
     }
   }
 

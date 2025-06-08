@@ -1,81 +1,88 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import { invalidateAll } from "$app/navigation";
+  import { invalidateAll, goto } from "$app/navigation";
   import "../app.css";
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     await invalidateAll();
+    await goto("/login");
   }
 </script>
 
-<nav class="top-nav">
-  <div class="nav-container">
-    <div class="nav-left">
-      <div class="logo">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-          ></path>
-        </svg>
+{#if $page.url.pathname !== "/login" && $page.url.pathname !== "/register"}
+  <nav class="top-nav">
+    <div class="nav-container">
+      <div class="nav-left">
+        <div class="logo">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+            ></path>
+          </svg>
+        </div>
+        <a href="/" class="logo-text">iWords</a>
       </div>
-      <a href="/" class="logo-text">iWords</a>
-    </div>
 
-    <nav class="top-main-nav">
-      <a href="/" class="nav-item" class:active={$page.url.pathname === "/"}
-        >首页</a
-      >
-      <a
-        href="/courses"
-        class="nav-item"
-        class:active={$page.url.pathname.startsWith("/courses")}>我的课程</a
-      >
-      <a href="#" class="nav-item">探索</a>
-    </nav>
+      <nav class="top-main-nav">
+        <a href="/" class="nav-item" class:active={$page.url.pathname === "/"}
+          >首页</a
+        >
+        <a
+          href="/courses"
+          class="nav-item"
+          class:active={$page.url.pathname.startsWith("/courses")}>我的课程</a
+        >
+        <a href="#" class="nav-item">探索</a>
+      </nav>
 
-    <div class="nav-right">
-      {#if $page.data.user}
-        <div class="user-menu">
-          <div class="user-avatar">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-              ></path>
-            </svg>
-          </div>
-          <span class="username">{$page.data.user.username}</span>
-          <div class="dropdown">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 9l-7 7-7-7"
-              ></path>
-            </svg>
-            <div class="dropdown-menu">
-              <a href="#" class="dropdown-item">个人设置</a>
-              <a href="#" class="dropdown-item">学习统计</a>
-              <div class="dropdown-divider"></div>
-              <button on:click={logout} class="dropdown-item logout"
-                >退出登录</button
-              >
+      <div class="nav-right">
+        {#if $page.data.user}
+          <div class="user-menu">
+            <div class="user-avatar">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                ></path>
+              </svg>
+            </div>
+            <span class="username">{$page.data.user.username}</span>
+            <div class="dropdown">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                ></path>
+              </svg>
+              <div class="dropdown-menu">
+                <a href="#" class="dropdown-item">个人设置</a>
+                <a href="#" class="dropdown-item">学习统计</a>
+                <div class="dropdown-divider"></div>
+                <button on:click={logout} class="dropdown-item logout"
+                  >退出登录</button
+                >
+              </div>
             </div>
           </div>
-        </div>
-      {/if}
+        {/if}
+      </div>
     </div>
-  </div>
-</nav>
+  </nav>
+{/if}
 
-<main class="main-content-area">
+<main
+  class="main-content-area"
+  class:no-nav={$page.url.pathname === "/login" ||
+    $page.url.pathname === "/register"}
+>
   <slot />
 </main>
 
@@ -160,6 +167,7 @@
     gap: 0.75rem;
     position: relative;
     cursor: pointer;
+    padding-bottom: 0.5rem;
   }
   .user-avatar {
     width: 2.5rem;
@@ -192,7 +200,6 @@
     position: absolute;
     top: 100%;
     right: 0;
-    margin-top: 0.5rem;
     background-color: white;
     border-radius: 0.5rem;
     box-shadow:
@@ -238,5 +245,9 @@
   }
   .main-content-area {
     padding-top: var(--nav-height);
+  }
+
+  .no-nav {
+    padding-top: 0;
   }
 </style>
