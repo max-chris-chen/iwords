@@ -16,8 +16,6 @@
     updateSection,
     deleteSection as apiDeleteSection,
   } from "$lib/api/section";
-  import { updateCourse } from "$lib/api/course";
-  import { CourseStatus } from "$lib/models/course";
 
   // Custom error type for API errors
   interface ApiError extends Error {
@@ -26,7 +24,13 @@
 
   // Extended Course type that includes sections with lessons
   interface CourseWithSections extends Course {
-    sections: Array<Section & { lessons: Lesson[] }>;
+    sections: Array<
+      Section & {
+        description?: string;
+        lessons: Array<Lesson & { duration?: string }>;
+      }
+    >;
+    totalHours?: number;
   }
 
   let course: CourseWithSections | null = null;
@@ -43,7 +47,6 @@
   let editSectionId: string | null = null;
   let editSectionTitle = "";
   let actionLoading = false;
-  let actionMessage = "";
 
   // UI state for add lesson modal
   let showAddLessonModal = false;
@@ -140,20 +143,6 @@
     }
   }
 
-  async function handleStatusChange(event: Event) {
-    if (!course) return;
-    const newStatus = (event.target as HTMLSelectElement).value as CourseStatus;
-    const id = get(page).params.id;
-    try {
-      const updatedCourse = await updateCourse(id, { status: newStatus });
-      course.status = updatedCourse.status;
-      actionMessage = "课程状态更新成功";
-    } catch (err: unknown) {
-      const error = err as ApiError;
-      actionMessage = `更新失败: ${error.message}`;
-    }
-  }
-
   onMount(fetchCourse);
 
   async function addSection() {
@@ -176,15 +165,13 @@
   async function deleteSection(sectionId: string) {
     if (!confirm("确定要删除该 Section 吗？")) return;
     actionLoading = true;
-    actionMessage = "";
     const id = get(page).params.id;
     try {
       await apiDeleteSection(id, sectionId);
-      actionMessage = "Section deleted.";
       await fetchCourse();
     } catch (err: unknown) {
       const error = err as ApiError;
-      actionMessage = error.message || "删除失败";
+      console.error(error.message || "删除失败");
     } finally {
       actionLoading = false;
     }
@@ -226,15 +213,14 @@
 
   async function deleteLesson(sectionId: string, lessonId: string) {
     actionLoading = true;
-    actionMessage = "";
     const id = get(page).params.id;
     try {
+      if (!confirm("确定要删除该 Lesson 吗？")) return;
       await apiDeleteLesson(id, sectionId, lessonId);
-      actionMessage = "Lesson deleted.";
       await fetchCourse();
     } catch (err: unknown) {
       const error = err as ApiError;
-      actionMessage = error.message || "删除失败";
+      console.error(error.message || "删除失败");
     } finally {
       actionLoading = false;
     }
@@ -253,6 +239,7 @@
     editLessonError = "";
     showEditLessonModal = true;
   }
+
   function closeEditLessonModal() {
     showEditLessonModal = false;
     editLessonSectionId = null;
@@ -329,461 +316,608 @@
     handleAddLesson();
   }
 
+  function startFirstLesson() {
+    if (course?.sections?.[0]?.lessons?.[0]) {
+      const firstSection = course.sections[0];
+      const firstLesson = firstSection.lessons[0];
+      if (course?._id && firstSection?._id && firstLesson?._id) {
+        goto(
+          `/courses/${course._id}/sections/${firstSection._id}/lessons/${firstLesson._id}`,
+        );
+      }
+    }
+  }
+
   // Helper no-op functions for modal props
   const noop = () => {};
 </script>
 
 {#if loading}
-  <p>Loading...</p>
-{:else if error}
-  <div style="color:red">{error}</div>
-{:else if course}
-  <h1 class="course-title">
-    <a href={location.pathname}>{course.title}</a>
-    <select
-      class="status-selector"
-      value={course.status}
-      on:change={handleStatusChange}
-    >
-      {#each Object.values(CourseStatus) as status}
-        <option value={status}>{status}</option>
-      {/each}
-    </select>
-  </h1>
-  {#if actionMessage}
-    <div style="color:green">{actionMessage}</div>
-  {/if}
-  <div class="sections-header">
-    <h2 class="sections-title">Sections</h2>
-    <span
-      class="add-section-icon"
-      title="Add Section"
-      on:click={openSectionModal}
-      tabindex="0"
-      role="button"
-      aria-label="Add Section">+</span
-    >
+  <div class="loading-container">
+    <p>Loading course details...</p>
   </div>
-  <AddSectionModal
-    open={showSectionModal}
-    error={sectionError}
-    loading={actionLoading}
-    bind:newTitle={newSectionTitle}
-    editMode={false}
-    onAdd={handleAddSection}
-    onEdit={noop}
-    onClose={closeSectionModal}
-  />
-  <AddSectionModal
-    open={showEditSectionModal}
-    error={sectionError}
-    loading={actionLoading}
-    bind:editTitle={editSectionTitle}
-    editMode={true}
-    onAdd={noop}
-    onEdit={handleEditSection}
-    onClose={closeEditSectionModal}
-  />
-  <AddLessonModal
-    open={showAddLessonModal}
-    loading={addLessonLoading}
-    error={addLessonError}
-    newTitle={addLessonTitle}
-    newContent={addLessonContent}
-    sectionTitle={addLessonSectionTitle}
-    on:save={handleAddLessonModalSave}
-    on:close={closeAddLessonModal}
-    editMode={false}
-  />
-  <AddLessonModal
-    open={showEditLessonModal}
-    loading={editLessonLoading}
-    error={editLessonError}
-    editMode={true}
-    editTitle={editLessonTitle}
-    editContent={editLessonContent}
-    sectionTitle={editLessonSectionTitle}
-    on:edit={handleEditLessonModalEdit}
-    on:close={closeEditLessonModal}
-  />
-  {#if course.sections?.length}
-    <ul style="list-style:none;padding:0;">
-      {#each course.sections as section}
-        <li class="section-card">
-          <div class="section-header">
-            <div class="section-title large">{section.title}</div>
-            <div class="section-actions">
-              <span
-                class="add-lesson-icon"
-                on:click={() =>
-                  openAddLessonModal(String(section._id), section.title || "")}
-                aria-label={`Add lesson to section ${section.title}`}
-                tabindex="0"
-                role="button"
-              >
-                <!-- Lucide Plus-Circle icon -->
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><circle cx="12" cy="12" r="10" /><line
-                    x1="12"
-                    y1="8"
-                    x2="12"
-                    y2="16"
-                  /><line x1="8" y1="12" x2="16" y2="12" /></svg
-                >
-              </span>
-              <span
-                class="edit-icon"
-                on:click={() => openEditSectionModal(section)}
-                aria-label="Edit section"
-              >
-                <!-- Lucide Pencil icon -->
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><path
-                    d="M15.232 5.232a3 3 0 1 1 4.243 4.243L7.5 21.5l-4 1 1-4 14.732-14.732z"
-                  ></path></svg
-                >
-              </span>
-              <span
-                class="delete-icon"
-                on:click={() => section._id && deleteSection(section._id)}
-                aria-label="Delete section"
-              >
-                <!-- Lucide Trash-2 icon -->
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><path d="M3 6h18" /><path
-                    d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                  /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><line
-                    x1="10"
-                    y1="11"
-                    x2="10"
-                    y2="17"
-                  /><line x1="14" y1="11" x2="14" y2="17" /></svg
-                >
-              </span>
-            </div>
-          </div>
+{:else if error}
+  <div class="error-container">
+    <p>Sorry, there was an error loading the course.</p>
+    <p class="error-message">{error}</p>
+  </div>
+{:else if course}
+  <div class="page-container">
+    <header class="page-header">
+      <a href="/courses" class="back-link">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          ><path d="M19 12H5M12 19l-7-7 7-7" /></svg
+        >
+        <span>返回课程列表</span>
+      </a>
+    </header>
 
-          {#if section.lessons?.length}
-            <div class="lesson-list">
-              <ul style="margin-top:0.5em;">
-                {#each section.lessons as lesson}
-                  <li class="lesson-item">
-                    <div>
-                      <span class="lesson-title">{lesson.title}</span>
-                      <span class="lesson-content">{lesson.content}</span>
-                    </div>
-                    <div class="lesson-actions">
-                      <button
-                        on:click={() =>
-                          startEditLesson(
-                            String(section._id),
-                            lesson,
-                            section.title || "",
-                          )}
-                        style="margin-left:1em;">Edit</button
+    <main>
+      <div class="course-hero-card">
+        <div class="course-image-placeholder">
+          <svg
+            width="64"
+            height="64"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+        </div>
+        <div class="course-info">
+          <h1>{course.title}</h1>
+          <p class="course-description">
+            {course.description ||
+              ""}
+          </p>
+          <div class="course-stats">
+            <span class="stat">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle
+                  cx="9"
+                  cy="7"
+                  r="4"
+                /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path
+                  d="M16 3.13a4 4 0 0 1 0 7.75"
+                /></svg
+              >
+              <span>{course.studentCount || 0} 学员</span>
+            </span>
+            <span class="stat">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><circle cx="12" cy="12" r="10" /><polyline
+                  points="12 6 12 12 16 14"
+                /></svg
+              >
+              <span>{course.totalHours || 18} 课时</span>
+            </span>
+            <span class="stat">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path
+                  d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"
+                /></svg
+              >
+              <span>{course.sections?.length || 0} 章节</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sections-container">
+        <div class="sections-header">
+          <h2>课程章节</h2>
+          <button class="btn-add-section" on:click={openSectionModal}>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><line x1="12" y1="5" x2="12" y2="19" /><line
+                x1="5"
+                y1="12"
+                x2="19"
+                y2="12"
+              /></svg
+            >
+            <span>添加章节</span>
+          </button>
+        </div>
+
+        {#if course.sections?.length}
+          <ul class="sections-list">
+            {#each course.sections as section, i}
+              <li class="section-item">
+                <div class="section-item-header">
+                  <div class="section-item-title">
+                    <h3>第一章: {section.title}</h3>
+                    <p>
+                      {section.description || "学习在购物时的常用英语表达"}
+                    </p>
+                  </div>
+                  <div class="section-item-actions">
+                    <button
+                      class="btn-icon"
+                      aria-label="Edit section"
+                      on:click={() => openEditSectionModal(section)}
+                    >
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><path
+                          d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                        /><path
+                          d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                        /></svg
                       >
-                      <button
-                        on:click={() =>
-                          deleteLesson(String(section._id), String(lesson._id))}
-                        style="margin-left:0.5em;"
-                        aria-label="Delete lesson">Delete</button
+                    </button>
+                    <button
+                      class="btn-icon"
+                      aria-label="Delete section"
+                      on:click={() => section._id && deleteSection(section._id)}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><polyline points="3 6 5 6 21 6" /><path
+                          d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                        /><line x1="10" y1="11" x2="10" y2="17" /><line
+                          x1="14"
+                          y1="11"
+                          x2="14"
+                          y2="17"
+                        /></svg
                       >
-                      <button
-                        on:click|stopPropagation={() => {
-                          if (course?._id && section?._id && lesson?._id) {
-                            goto(
-                              `/courses/${course._id}/sections/${section._id}/lessons/${lesson._id}`,
-                            );
-                          }
-                        }}
-                        style="margin-left:0.5em;"
-                        class="btn-study">学习</button
-                      >
-                    </div>
-                  </li>
-                {/each}
-              </ul>
-            </div>
-          {/if}
-        </li>
-      {/each}
-    </ul>
-  {:else}
-    <p>No sections found.</p>
-  {/if}
+                    </button>
+                  </div>
+                </div>
+
+                {#if section.lessons?.length}
+                  <ul class="lessons-list">
+                    {#each section.lessons as lesson}
+                      <li class="lesson-item">
+                        <div class="lesson-info">
+                          <div class="lesson-play-icon">
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              stroke="currentColor"
+                              stroke-width="1"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            >
+                              <polygon points="5 3 19 12 5 21 5 3" />
+                            </svg>
+                          </div>
+                          <span class="lesson-title">{lesson.title}</span>
+                        </div>
+                        <div class="lesson-actions">
+                          <span class="lesson-duration">
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              ><circle cx="12" cy="12" r="10" /><polyline
+                                points="12 6 12 12 16 14"
+                              /></svg
+                            >
+                            <span>{lesson.duration || "15 分钟"}</span>
+                          </span>
+                          <button
+                            class="btn-start-lesson"
+                            on:click|stopPropagation={() => {
+                              if (
+                                course?._id &&
+                                section?._id &&
+                                lesson?._id
+                              ) {
+                                goto(
+                                  `/courses/${course._id}/sections/${section._id}/lessons/${lesson._id}`,
+                                );
+                              }
+                            }}>开始学习</button
+                          >
+                        </div>
+                      </li>
+                    {/each}
+                  </ul>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <div class="no-sections-card">
+            <p>本课程还没有任何章节。</p>
+            <button class="btn btn-primary" on:click={openSectionModal}
+              >创建第一个章节</button
+            >
+          </div>
+        {/if}
+      </div>
+    </main>
+  </div>
 {/if}
 
+<AddSectionModal
+  open={showSectionModal}
+  error={sectionError}
+  loading={actionLoading}
+  bind:newTitle={newSectionTitle}
+  editMode={false}
+  onAdd={handleAddSection}
+  onEdit={noop}
+  onClose={closeSectionModal}
+/>
+<AddSectionModal
+  open={showEditSectionModal}
+  error={sectionError}
+  loading={actionLoading}
+  bind:editTitle={editSectionTitle}
+  editMode={true}
+  onAdd={noop}
+  onEdit={handleEditSection}
+  onClose={closeEditSectionModal}
+/>
+<AddLessonModal
+  open={showAddLessonModal}
+  loading={addLessonLoading}
+  error={addLessonError}
+  newTitle={addLessonTitle}
+  newContent={addLessonContent}
+  sectionTitle={addLessonSectionTitle}
+  on:save={handleAddLessonModalSave}
+  on:close={closeAddLessonModal}
+  editMode={false}
+/>
+<AddLessonModal
+  open={showEditLessonModal}
+  loading={editLessonLoading}
+  error={editLessonError}
+  editMode={true}
+  editTitle={editLessonTitle}
+  editContent={editLessonContent}
+  sectionTitle={editLessonSectionTitle}
+  on:edit={handleEditLessonModalEdit}
+  on:close={closeEditLessonModal}
+/>
+
 <style>
-  h1 {
-    margin-bottom: 0.5em;
+  :root {
+    --primary-color: #2563eb;
+    --primary-hover-color: #1d4ed8;
+    --text-primary: #1f2937;
+    --text-secondary: #4b5563;
+    --text-light: #6b7280;
+    --bg-color: #f9fafb;
+    --card-bg-color: #ffffff;
+    --border-color: #e5e7eb;
+    --blue-bg-light: #eff6ff;
   }
-  h2 {
-    margin-top: 2em;
+  .page-container {
+    padding: 1rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: var(--bg-color);
   }
-  .course-title {
-    text-align: center;
-    margin-bottom: 1.2em;
-    font-size: 2.2em;
-    font-weight: bold;
-    color: #1e293b;
+  .loading-container,
+  .error-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+  }
+  .error-message {
+    color: #ef4444;
+    font-family: monospace;
+    margin-top: 1rem;
+    background-color: #fee2e2;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+  }
+  .page-header {
+    margin-bottom: 1.5rem;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .back-link:hover {
+    color: var(--text-primary);
+  }
+  .course-hero-card {
+    background-color: var(--card-bg-color);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1),
+      0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  }
+  .course-image-placeholder {
+    width: 12rem;
+    height: 9rem;
+    background-color: #f3f4f6;
+    border-radius: 0.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5em;
+    color: #9ca3af;
+    flex-shrink: 0;
+  }
+  .course-info {
+    flex-grow: 1;
+  }
+  .course-info h1 {
+    font-size: 1.875rem;
+    font-weight: bold;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem;
+  }
+  .course-description {
+    font-size: 1rem;
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+  }
+  .course-stats {
+    display: flex;
+    gap: 1.5rem;
+    color: var(--text-secondary);
+  }
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .stat svg {
+    color: var(--text-light);
+  }
+  .course-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.375rem;
+    border: 1px solid transparent;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    text-decoration: none;
+  }
+  .btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  .btn-primary:hover {
+    background-color: var(--primary-hover-color);
+  }
+  .btn-secondary {
+    background-color: var(--card-bg-color);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+  }
+  .btn-secondary:hover {
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+  }
+  .sections-container {
+    margin-top: 2.5rem;
   }
   .sections-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 0.7em;
-    margin-bottom: 0.7em;
+    margin-bottom: 1.5rem;
   }
-  .sections-title {
-    font-size: 1.5em;
+  .sections-header h2 {
+    font-size: 1.5rem;
     font-weight: 600;
-    color: #374151;
-    margin: 0;
+    color: var(--text-primary);
   }
-  .add-section-icon {
-    font-size: 2em;
-    color: #10b981;
+  .btn-add-section {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #10b981;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    font-weight: 500;
     cursor: pointer;
-    user-select: none;
-    margin-left: 0.2em;
-    transition: color 0.15s;
-    line-height: 1;
+  }
+  .btn-add-section:hover {
+    background-color: #059669;
+  }
+  .sections-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .section-item {
+    background-color: var(--blue-bg-light);
+    border: 1px solid #bfdbfe;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+  }
+  .section-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .section-item-title h3 {
+    margin: 0 0 0.25rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1e3a8a;
+  }
+  .section-item-title p {
+    margin: 0;
+    color: #1e40af;
+  }
+  .section-item-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .btn-icon {
+    background: transparent;
+    border: none;
+    color: #60a5fa;
+    cursor: pointer;
+    padding: 0.5rem;
     border-radius: 50%;
-    width: 1.3em;
-    height: 1.3em;
+  }
+  .btn-icon:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+    color: #3b82f6;
+  }
+  .lessons-list {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .lesson-item {
+    background-color: var(--card-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .lesson-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .lesson-play-icon {
+    color: var(--primary-color);
+    background-color: var(--blue-bg-light);
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-  .add-section-icon:hover,
-  .add-section-icon:focus {
-    color: #059669;
-    background: #e0f2f1;
-    outline: none;
-  }
-  .section-card {
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 1.5em;
-    margin-bottom: 1.5em;
-    background: #f9fafb;
-    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.03);
-    transition: box-shadow 0.2s;
-  }
-  .section-card:hover {
-    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.07);
-  }
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.5em;
-  }
-  .section-title {
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #374151;
-  }
-  .section-title.large {
-    font-size: 1.25em;
-    font-weight: 600;
-  }
-  .section-actions {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 0.2em;
-  }
-  .section-actions button,
-  .lesson-actions button {
-    margin-left: 0.5em;
-    background: #2563eb;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 0.3em 0.8em;
-    font-size: 0.95em;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .section-actions button:hover,
-  .lesson-actions button:hover {
-    background: #1d4ed8;
-  }
-  .lesson-list {
-    margin-top: 0.7em;
-    padding-left: 1.2em;
-  }
-  .lesson-item {
-    background: #fff;
-    border-radius: 6px;
-    padding: 0.7em 1em;
-    margin-bottom: 0.5em;
-    box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.04);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
   }
   .lesson-title {
     font-weight: 500;
-    color: #1e293b;
+    color: var(--text-primary);
   }
-  .lesson-content {
-    color: #64748b;
-    margin-left: 1em;
-    font-size: 0.98em;
-  }
-  .input-row {
+  .lesson-actions {
     display: flex;
-    gap: 0.7em;
-    margin-bottom: 0.7em;
     align-items: center;
+    gap: 1rem;
   }
-  input[type="text"],
-  input[type="search"] {
-    padding: 0.4em 0.7em;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 1em;
-    background: #fff;
-    color: #1e293b;
-    outline: none;
-    transition: border 0.15s;
+  .lesson-duration {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--text-light);
+    font-size: 0.875rem;
   }
-  input[type="text"]:focus,
-  input[type="search"]:focus {
-    border: 1.5px solid #2563eb;
-  }
-  .feedback {
-    margin: 0.7em 0 0.5em 0;
-    color: #059669;
+  .btn-start-lesson {
+    font-size: 0.875rem;
     font-weight: 500;
-  }
-  .error {
-    color: #dc2626;
-    font-weight: 500;
-    margin-left: 0.5em;
-  }
-  .loading {
-    color: #2563eb;
-    font-style: italic;
-    margin: 1em 0;
-  }
-  .edit-icon {
-    font-size: 1.5em;
-    color: #64748b; /* Skeleton 默认灰色 */
-    cursor: pointer;
-    user-select: none;
-    margin-left: 0;
-    transition:
-      color 0.15s,
-      background 0.15s;
-    border-radius: 50%;
-    width: 1.8em;
-    height: 1.8em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .edit-icon:hover,
-  .edit-icon:focus {
-    color: #2563eb; /* Skeleton 主色 */
-    background: #e0f2f1;
-    outline: none;
-  }
-  .delete-icon {
-    font-size: 1.5em;
-    color: #64748b; /* Skeleton 默认灰色 */
-    cursor: pointer;
-    user-select: none;
-    margin-left: 0;
-    transition:
-      color 0.15s,
-      background 0.15s;
-    border-radius: 50%;
-    width: 1.8em;
-    height: 1.8em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .delete-icon:hover,
-  .delete-icon:focus {
-    color: #dc2626; /* Skeleton 红色 */
-    background: #fde8e8;
-    outline: none;
-  }
-  .add-lesson-icon {
-    font-size: 1.5em;
-    color: #10b981; /* Skeleton 绿色 */
-    cursor: pointer;
-    user-select: none;
-    transition:
-      color 0.15s,
-      background 0.15s;
-    border-radius: 50%;
-    width: 1.8em;
-    height: 1.8em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 0;
-  }
-  .add-lesson-icon:hover,
-  .add-lesson-icon:focus {
-    color: #059669;
-    background: #e0f2f1;
-    outline: none;
-  }
-  .btn-study {
-    background: #4caf50;
-    color: #fff;
+    color: var(--primary-color);
+    text-decoration: none;
+    background: transparent;
     border: none;
-    border-radius: 4px;
-    padding: 0.3em 0.8em;
-    font-size: 0.95em;
     cursor: pointer;
-    transition: background 0.15s;
   }
-  .btn-study:hover {
-    background: #43a047;
+  .btn-start-lesson:hover {
+    text-decoration: underline;
   }
-  .status-selector {
-    font-size: 0.6em;
-    padding: 0.2em 0.5em;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-    background-color: #f8f8f8;
-    cursor: pointer;
+  .no-sections-card {
+    background-color: var(--card-bg-color);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1),
+      0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  }
+  .no-sections-card p {
+    color: var(--text-secondary);
+    margin: 0 0 1rem;
   }
 </style>
