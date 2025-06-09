@@ -11,10 +11,12 @@
   let learningMode = "listening"; // listening, reading, writing
   let showSentence = false;
   let isPlaying = false;
+  let highlightedWordIndex = -1;
 
   $: sentences =
     lesson?.sentences?.map((s) => (typeof s === "string" ? s : s.text)) || [];
   $: currentSentence = sentences[currentSentenceIndex] || "";
+  $: words = currentSentence.split(" ");
   $: maskedSentence = currentSentence.replace(/[a-zA-Z]/g, "*");
 
   function playCurrentSentence() {
@@ -30,15 +32,36 @@
       window.speechSynthesis.cancel();
     } else {
       const utterance = new SpeechSynthesisUtterance(currentSentence);
+
+      const wordStartIndices = [0];
+      let cumulativeLength = 0;
+      for (let i = 0; i < words.length - 1; i++) {
+        cumulativeLength += words[i].length + 1; // +1 for space
+        wordStartIndices.push(cumulativeLength);
+      }
+
+      utterance.onboundary = (event) => {
+        let index = -1;
+        for (let i = wordStartIndices.length - 1; i >= 0; i--) {
+          if (event.charIndex >= wordStartIndices[i]) {
+            index = i;
+            break;
+          }
+        }
+        highlightedWordIndex = index;
+      };
+
       utterance.onstart = () => {
         isPlaying = true;
       };
       utterance.onend = () => {
         isPlaying = false;
+        highlightedWordIndex = -1;
       };
       utterance.onerror = (e) => {
         console.error("Speech synthesis error:", e);
         isPlaying = false;
+        highlightedWordIndex = -1;
       };
       window.speechSynthesis.speak(utterance);
     }
@@ -49,6 +72,7 @@
       window.speechSynthesis?.cancel();
       currentSentenceIndex++;
       showSentence = false;
+      highlightedWordIndex = -1;
     }
   }
 
@@ -57,6 +81,7 @@
       window.speechSynthesis?.cancel();
       currentSentenceIndex--;
       showSentence = false;
+      highlightedWordIndex = -1;
     }
   }
 
@@ -178,7 +203,9 @@
     <div class="card sentence-card">
       <p class="sentence-text">
         {#if showSentence}
-          {currentSentence}
+          {#each words as word, i}
+            <span class:highlight={i === highlightedWordIndex}>{word}</span>{" "}
+          {/each}
         {:else}
           {maskedSentence}
         {/if}
@@ -507,5 +534,11 @@
   }
   .btn-nav:not(.btn-primary):hover:not(:disabled) {
     background-color: #f3f4f6;
+  }
+  .sentence-text span.highlight {
+    background-color: var(--blue-bg-light);
+    color: var(--primary-color);
+    border-radius: 4px;
+    padding: 2px 4px;
   }
 </style>
