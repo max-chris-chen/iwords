@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from "$app/stores";
   import type { Lesson, LessonSentence } from "$lib/models/course";
+  import { onDestroy } from "svelte";
 
   export let data;
 
@@ -9,14 +10,43 @@
   let currentSentenceIndex = 0;
   let learningMode = "listening"; // listening, reading, writing
   let showSentence = false;
+  let isPlaying = false;
 
   $: sentences =
     lesson?.sentences?.map((s) => (typeof s === "string" ? s : s.text)) || [];
   $: currentSentence = sentences[currentSentenceIndex] || "";
   $: maskedSentence = currentSentence.replace(/[a-zA-Z]/g, "*");
 
+  function playCurrentSentence() {
+    if (
+      !currentSentence ||
+      typeof window === "undefined" ||
+      !window.speechSynthesis
+    ) {
+      return;
+    }
+
+    if (isPlaying) {
+      window.speechSynthesis.cancel();
+    } else {
+      const utterance = new SpeechSynthesisUtterance(currentSentence);
+      utterance.onstart = () => {
+        isPlaying = true;
+      };
+      utterance.onend = () => {
+        isPlaying = false;
+      };
+      utterance.onerror = (e) => {
+        console.error("Speech synthesis error:", e);
+        isPlaying = false;
+      };
+      window.speechSynthesis.speak(utterance);
+    }
+  }
+
   function nextSentence() {
     if (lesson && currentSentenceIndex < sentences.length - 1) {
+      window.speechSynthesis?.cancel();
       currentSentenceIndex++;
       showSentence = false;
     }
@@ -24,10 +54,17 @@
 
   function prevSentence() {
     if (currentSentenceIndex > 0) {
+      window.speechSynthesis?.cancel();
       currentSentenceIndex--;
       showSentence = false;
     }
   }
+
+  onDestroy(() => {
+    if (typeof window !== "undefined") {
+      window.speechSynthesis?.cancel();
+    }
+  });
 </script>
 
 <div class="page-container">
@@ -88,25 +125,47 @@
 
     <div class="card">
       <div class="playback-controls">
-        <button class="btn-icon">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="lucide lucide-play-circle"
-            ><circle cx="12" cy="12" r="10" /><polygon
-              points="10 8 16 12 10 16 10 8"
-            /></svg
-          >
-          <span>播放</span>
+        <button class="btn-icon" on:click={playCurrentSentence}>
+          {#if isPlaying}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-pause-circle"
+              ><circle cx="12" cy="12" r="10" /><line
+                x1="10"
+                y1="15"
+                x2="10"
+                y2="9"
+              /><line x1="14" y1="15" x2="14" y2="9" /></svg
+            >
+            <span>暂停</span>
+          {:else}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-play-circle"
+              ><circle cx="12" cy="12" r="10" /><polygon
+                points="10 8 16 12 10 16 10 8"
+              /></svg
+            >
+            <span>播放</span>
+          {/if}
         </button>
-        <div class="sound-wave">
+        <div class="sound-wave" class:playing={isPlaying}>
           <div class="bar"></div>
           <div class="bar"></div>
           <div class="bar"></div>
@@ -124,25 +183,48 @@
           {maskedSentence}
         {/if}
       </p>
-      <button class="btn-icon btn-reveal" on:click={() => (showSentence = true)}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-eye"
-          ><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle
-            cx="12"
-            cy="12"
-            r="3"
-          /></svg
-        >
-        <span>查看</span>
+      <button class="btn-icon btn-reveal" on:click={() => (showSentence = !showSentence)}>
+        {#if showSentence}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-eye-off"
+          >
+            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+            <path
+              d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
+            />
+            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+            <line x1="2" x2="22" y1="2" y2="22" />
+          </svg>
+          <span>隐藏</span>
+        {:else}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-eye"
+            ><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle
+              cx="12"
+              cy="12"
+              r="3"
+            /></svg
+          >
+          <span>查看</span>
+        {/if}
       </button>
     </div>
 
@@ -156,7 +238,7 @@
           xmlns="http://www.w3.org/2000/svg"
           width="20"
           height="20"
-          viewBox="0 0 24 24"
+          viewBox="0 0 24"
           fill="none"
           stroke="currentColor"
           stroke-width="2"
@@ -177,7 +259,7 @@
           xmlns="http://www.w3.org/2000/svg"
           width="20"
           height="20"
-          viewBox="0 0 24 24"
+          viewBox="0 0 24"
           fill="none"
           stroke="currentColor"
           stroke-width="2"
@@ -364,6 +446,12 @@
     height: 8px;
     animation-delay: -0.4s;
   }
+
+  .sound-wave:not(.playing) .bar {
+    animation: none;
+    height: 4px;
+  }
+
   @keyframes sound {
     0% {
       height: 4px;
