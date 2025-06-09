@@ -2,10 +2,13 @@
   import { page } from "$app/stores";
   import type { Lesson, LessonSentence } from "$lib/models/course";
   import { onDestroy } from "svelte";
+  import AddLessonModal from "$lib/modals/AddLessonModal.svelte";
+  import { updateLesson } from "$lib/api/lesson";
+  import { goto } from "$app/navigation";
 
   export let data;
 
-  let { lesson, courseId } = data;
+  let { lesson, courseId, sectionId } = data;
 
   let currentSentenceIndex = 0;
   let learningMode = "listening"; // listening, reading, writing
@@ -13,15 +16,80 @@
   let isPlaying = false;
   let highlightedWordIndex = -1;
 
-  $: sentences =
-    lesson?.sentences?.map((s) => (typeof s === "string" ? s : s.text)) || [];
-  $: currentSentence = sentences[currentSentenceIndex] || "";
-  $: words = currentSentence.split(" ");
-  $: maskedSentence = currentSentence.replace(/[a-zA-Z]/g, "*");
+  let isRecording = false;
+  let recordedAudioUrl: string | null = null;
+  let recordedAudioBlob: Blob | null = null;
+  let mediaRecorder: MediaRecorder | null = null;
+  let audioChunks: Blob[] = [];
+  let recordingTime = 0;
+  let recordingTimer: any = null;
+  let isSubmitting = false;
+  let submissionStatus: "success" | "error" | null = null;
+
+  // UI state for edit lesson modal
+  let showEditLessonModal = false;
+  let editLessonTitle = "";
+  let editLessonContent = "";
+  let editLessonError = "";
+  let editLessonLoading = false;
+
+  $: currentSentenceObject = lesson?.sentences?.[currentSentenceIndex];
+  $: currentSentenceText =
+    (typeof currentSentenceObject === "string"
+      ? currentSentenceObject
+      : currentSentenceObject?.text) || "";
+  $: words = currentSentenceText.split(" ");
+  $: maskedSentence = currentSentenceText.replace(/[a-zA-Z]/g, "*");
+
+  function openEditLessonModal() {
+    showEditLessonModal = true;
+    editLessonTitle = lesson.title;
+    editLessonContent = lesson.sentences.map((s) => s.text).join("\n");
+    editLessonError = "";
+  }
+
+  function closeEditLessonModal() {
+    showEditLessonModal = false;
+  }
+
+  async function handleEditLessonModalEdit(e: CustomEvent) {
+    editLessonError = "";
+    editLessonLoading = true;
+
+    if (!e.detail.title.trim()) {
+      editLessonError = "Lesson title required";
+      editLessonLoading = false;
+      return;
+    }
+
+    try {
+      if (!lesson._id) {
+        throw new Error("Lesson ID is missing");
+      }
+      const updatedLesson = await updateLesson(
+        courseId,
+        sectionId,
+        lesson._id,
+        {
+          title: e.detail.title,
+          content: e.detail.content,
+        },
+      );
+      lesson = { ...lesson, ...updatedLesson };
+      closeEditLessonModal();
+      // Optionally, force a reload of the page to see changes if direct update is complex
+      // window.location.reload();
+    } catch (err: unknown) {
+      const error = err as Error;
+      editLessonError = error.message || "更新失败";
+    } finally {
+      editLessonLoading = false;
+    }
+  }
 
   function playCurrentSentence() {
     if (
-      !currentSentence ||
+      !currentSentenceText ||
       typeof window === "undefined" ||
       !window.speechSynthesis
     ) {
@@ -31,7 +99,7 @@
     if (isPlaying) {
       window.speechSynthesis.cancel();
     } else {
-      const utterance = new SpeechSynthesisUtterance(currentSentence);
+      const utterance = new SpeechSynthesisUtterance(currentSentenceText);
 
       const wordStartIndices = [0];
       let cumulativeLength = 0;
@@ -68,11 +136,12 @@
   }
 
   function nextSentence() {
-    if (lesson && currentSentenceIndex < sentences.length - 1) {
+    if (lesson && currentSentenceIndex < lesson.sentences.length - 1) {
       window.speechSynthesis?.cancel();
       currentSentenceIndex++;
       showSentence = false;
       highlightedWordIndex = -1;
+      resetRecording();
     }
   }
 
@@ -82,6 +151,105 @@
       currentSentenceIndex--;
       showSentence = false;
       highlightedWordIndex = -1;
+      resetRecording();
+    }
+  }
+
+  async function startRecording() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+        recordedAudioBlob = audioBlob;
+        recordedAudioUrl = URL.createObjectURL(audioBlob);
+        audioChunks = [];
+        clearInterval(recordingTimer);
+      };
+      audioChunks = [];
+      mediaRecorder.start();
+      isRecording = true;
+      recordingTime = 0;
+      recordingTimer = setInterval(() => {
+        recordingTime++;
+      }, 1000);
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorder) {
+      mediaRecorder.stop();
+      isRecording = false;
+    }
+  }
+
+  function resetRecording() {
+    if (isRecording) {
+      stopRecording();
+    }
+    recordedAudioUrl = null;
+    audioChunks = [];
+    if (mediaRecorder?.stream) {
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    }
+    mediaRecorder = null;
+    clearInterval(recordingTimer);
+    recordingTime = 0;
+  }
+
+  function formatTime(seconds: number) {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  async function submitRecording() {
+    if (!recordedAudioBlob) {
+      alert("没有可提交的录音。");
+      return;
+    }
+    isSubmitting = true;
+    submissionStatus = null;
+    try {
+      const formData = new FormData();
+      formData.append("recording", recordedAudioBlob, "recording.wav");
+      if (!lesson._id) {
+        throw new Error("当前课程没有ID，无法提交。");
+      }
+      formData.append("lessonId", lesson._id);
+
+      const sentenceObject = lesson.sentences[currentSentenceIndex];
+      const sentenceId =
+        typeof sentenceObject !== "string" && sentenceObject?._id
+          ? sentenceObject._id
+          : null;
+
+      if (!sentenceId) {
+        throw new Error("当前句子没有ID，无法提交。");
+      }
+      formData.append("sentenceId", sentenceId);
+
+      const response = await fetch("/api/courses/recording", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        submissionStatus = "success";
+        alert("录音提交成功！");
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "提交失败，请重试。");
+      }
+    } catch (error) {
+      submissionStatus = "error";
+      console.error("Submission error:", error);
+      alert(`提交出错: ${error instanceof Error ? error.message : "未知错误"}`);
+    } finally {
+      isSubmitting = false;
     }
   }
 
@@ -120,13 +288,19 @@
           <div class="progress-bar">
             <div
               class="progress-bar-inner"
-              style={`width: ${((currentSentenceIndex + 1) / sentences.length) * 100}%`}
+              style={`width: ${((currentSentenceIndex + 1) / (lesson?.sentences?.length || 1)) * 100}%`}
             ></div>
           </div>
           <span class="progress-text"
-            >{currentSentenceIndex + 1} / {sentences.length}</span
+            >{currentSentenceIndex + 1} / {lesson?.sentences?.length || 0}</span
           >
         </div>
+      </div>
+       <div class="mt-4 flex justify-end">
+        <button class="btn" on:click={openEditLessonModal}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pencil"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+          <span>编辑</span>
+        </button>
       </div>
     </div>
 
@@ -156,7 +330,7 @@
               xmlns="http://www.w3.org/2000/svg"
               width="24"
               height="24"
-              viewBox="0 0 24"
+              viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
@@ -176,7 +350,7 @@
               xmlns="http://www.w3.org/2000/svg"
               width="24"
               height="24"
-              viewBox="0 0 24"
+              viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
@@ -202,7 +376,7 @@
 
     <div class="card sentence-card">
       <p class="sentence-text">
-        {#if showSentence}
+        {#if showSentence || learningMode === 'reading'}
           {#each words as word, i}
             <span class:highlight={i === highlightedWordIndex}>{word}</span>{" "}
           {/each}
@@ -210,95 +384,142 @@
           {maskedSentence}
         {/if}
       </p>
-      <button class="btn-icon btn-reveal" on:click={() => (showSentence = !showSentence)}>
-        {#if showSentence}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="lucide lucide-eye-off"
-          >
-            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-            <path
-              d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
-            />
-            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-            <line x1="2" x2="22" y1="2" y2="22" />
-          </svg>
-          <span>隐藏</span>
-        {:else}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="lucide lucide-eye"
-            ><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle
-              cx="12"
-              cy="12"
-              r="3"
-            /></svg
-          >
-          <span>查看</span>
-        {/if}
-      </button>
-    </div>
 
-    <div class="navigation-buttons">
-      <button
-        class="btn-nav"
-        on:click={prevSentence}
-        disabled={currentSentenceIndex === 0}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-chevron-left"
-          ><path d="m15 18-6-6 6-6" /></svg
+      {#if learningMode === 'reading'}
+        <div class="recording-controls">
+          {#if !isRecording}
+            <button class="btn btn-primary" on:click={startRecording} disabled={isRecording}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+              <span>开始录音</span>
+            </button>
+          {:else}
+            <button class="btn btn-danger" on:click={stopRecording} disabled={!isRecording}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-stop-circle"><circle cx="12" cy="12" r="10"/><rect width="6" height="6" x="9" y="9"/></svg>
+              <span>停止录音 ({formatTime(recordingTime)})</span>
+            </button>
+          {/if}
+        </div>
+
+        {#if recordedAudioUrl}
+          <div class="recorded-audio">
+            <h3>我的录音</h3>
+            <audio controls src={recordedAudioUrl}></audio>
+            <button class="btn btn-primary" on:click={submitRecording} disabled={isSubmitting}>
+              {#if isSubmitting}
+                <span>提交中...</span>
+              {:else}
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                <span>提交录音</span>
+              {/if}
+            </button>
+             {#if submissionStatus === 'success'}
+              <p class="success-message">提交成功！</p>
+            {/if}
+            {#if submissionStatus === 'error'}
+              <p class="error-message">提交失败，请重试。</p>
+            {/if}
+          </div>
+        {/if}
+      {/if}
+
+      {#if learningMode !== 'reading'}
+        <button class="btn-icon btn-reveal" on:click={() => (showSentence = !showSentence)}>
+          {#if showSentence}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-eye-off"
+            >
+              <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+              <path
+                d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
+              />
+              <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+              <line x1="2" x2="22" y1="2" y2="22" />
+            </svg>
+            <span>隐藏</span>
+          {:else}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-eye"
+              ><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle
+                cx="12"
+                cy="12"
+                r="3"
+              /></svg
+            >
+            <span>查看</span>
+          {/if}
+        </button>
+      {/if}
+
+      <div class="navigation-buttons">
+        <button class="btn" on:click={prevSentence} disabled={currentSentenceIndex === 0}>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-arrow-left"
+            ><path d="m12 19-7-7 7-7" /><path d="M19 12H5" /></svg
+          >
+          <span>上一个</span>
+        </button>
+        <button
+          class="btn btn-primary"
+          on:click={nextSentence}
+          disabled={lesson && currentSentenceIndex === (lesson.sentences.length || 0) - 1}
         >
-        <span>上一句</span>
-      </button>
-      <button
-        class="btn-nav btn-primary"
-        on:click={nextSentence}
-        disabled={currentSentenceIndex === sentences.length - 1}
-      >
-        <span>下一句</span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-chevron-right"
-          ><path d="m9 18 6-6-6-6" /></svg
-        >
-      </button>
+          <span>下一个</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-arrow-right"
+            ><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg
+          >
+        </button>
+      </div>
     </div>
   </main>
 </div>
+
+<AddLessonModal
+  bind:open={showEditLessonModal}
+  bind:loading={editLessonLoading}
+  bind:error={editLessonError}
+  editMode={true}
+  editTitle={editLessonTitle}
+  editContent={editLessonContent}
+  on:edit={handleEditLessonModalEdit}
+  on:close={closeEditLessonModal}
+/>
 
 <style>
   :root {
@@ -328,6 +549,10 @@
       "Apple Color Emoji",
       "Segoe UI Emoji",
       "Segoe UI Symbol";
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1rem;
   }
   .page-header {
     margin-bottom: 1.5rem;
@@ -507,38 +732,82 @@
     justify-content: space-between;
     align-items: center;
   }
-  .btn-nav {
+  .btn {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.625rem 1.25rem;
-    border-radius: 0.375rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
     border: 1px solid var(--border-color);
     background-color: var(--card-bg-color);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
     color: var(--text-secondary);
   }
-  .btn-nav:disabled {
+  .btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
-  .btn-nav.btn-primary {
+  .btn:not(:disabled):hover {
+    background-color: #f3f4f6;
+  }
+
+  .btn-primary {
     background-color: var(--primary-color);
     color: white;
     border-color: var(--primary-color);
   }
-  .btn-nav.btn-primary:hover:not(:disabled) {
-    background-color: var(--primary-hover-color);
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--primary-hover-color, #4f46e5);
   }
-  .btn-nav:not(.btn-primary):hover:not(:disabled) {
-    background-color: #f3f4f6;
+  .btn-danger {
+    background-color: #ef4444;
+    color: white;
+    border-color: #ef4444;
   }
+  .btn-danger:hover:not(:disabled) {
+    background-color: #dc2626;
+  }
+
   .sentence-text span.highlight {
     background-color: var(--blue-bg-light);
     color: var(--primary-color);
     border-radius: 4px;
     padding: 2px 4px;
+  }
+
+  .recording-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+  }
+
+  .recorded-audio {
+    margin-top: 1.5rem;
+    text-align: center;
+  }
+
+  .recorded-audio h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .recorded-audio audio {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .success-message {
+    color: #16a34a;
+    margin-top: 0.5rem;
+  }
+
+  .error-message {
+    color: #ef4444;
+    margin-top: 0.5rem;
   }
 </style>

@@ -30,84 +30,245 @@
   function handleClose() {
     dispatch("close");
   }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === "Escape") {
+      handleClose();
+    }
+  }
 </script>
 
+<svelte:window on:keydown={handleKeydown} />
+
 {#if open}
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-    <div
-      class="bg-white rounded-2xl p-10 w-full max-w-3xl relative border-2 border-black shadow-lg flex flex-col items-stretch min-w-[600px] min-h-[500px]"
-    >
-      <button
-        class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl font-bold"
-        on:click={handleClose}
-        aria-label="Close">&times;</button
-      >
-      <h3 class="text-2xl font-bold text-center mb-6 text-primary-700">
-        {editMode ? "编辑 Lesson" : "添加 Lesson"}{#if sectionTitle}
-          <span class="section-name">({sectionTitle})</span>{/if}
-      </h3>
-      <div class="flex flex-col gap-3 mb-4">
-        <input
-          class="border border-gray-300 rounded px-3 py-2 text-base focus:outline-none focus:border-primary-700 w-full"
-          placeholder="Lesson title"
-          bind:value={localTitle}
-          aria-label="Lesson title"
-          autofocus
-        />
-        <textarea
-          class="border border-gray-300 rounded px-3 py-2 text-base focus:outline-none focus:border-primary-700 w-full min-h-[220px] resize-y"
-          placeholder="Lesson content"
-          bind:value={localContent}
-          aria-label="Lesson content"
-          maxlength="10000"
-        />
-        <div class="text-xs text-gray-500 text-right">
-          {localContent.length}/10000
-        </div>
-      </div>
-      {#if error}
-        <div class="text-red-600 font-medium mb-2 text-sm">{error}</div>
-      {/if}
-      <div class="flex gap-3 justify-end mt-2">
-        {#if editMode}
-          <button
-            type="button"
-            class="btn-gradient flex items-center gap-2 px-6 py-2 font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-full justify-center mt-2 disabled:opacity-60"
-            on:click={handleSave}
-            disabled={loading}
-          >
-            {loading ? "保存中..." : "保存"}
-          </button>
-        {:else}
-          <button
-            type="button"
-            class="btn-gradient flex items-center gap-2 px-6 py-2 font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 w-full justify-center mt-2 disabled:opacity-60"
-            on:click={handleSave}
-            disabled={loading}
-          >
-            {loading ? "添加中..." : "添加"}
-          </button>
+  <div class="modal-backdrop" on:click={handleClose}>
+    <div class="modal-content" on:click|stopPropagation>
+      <button class="modal-close-btn" on:click={handleClose}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+      <div class="modal-header">
+        <h2 class="modal-title">
+          {editMode ? "编辑 Lesson" : "添加 Lesson"}
+        </h2>
+        {#if sectionTitle}
+          <p class="modal-subtitle">
+            在
+            <span class="section-name">{sectionTitle}</span>
+            章节中
+          </p>
         {/if}
       </div>
+
+      <form on:submit|preventDefault={handleSave}>
+        <div class="form-group">
+          <label for="lesson-title">Lesson 标题</label>
+          <input
+            id="lesson-title"
+            class="input-field"
+            placeholder="Lesson title"
+            bind:value={localTitle}
+            aria-label="Lesson title"
+            autofocus
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="lesson-content">Lesson 内容</label>
+          <textarea
+            id="lesson-content"
+            class="input-field"
+            placeholder="Lesson content"
+            bind:value={localContent}
+            aria-label="Lesson content"
+            maxlength="10000"
+            rows="8"
+          />
+          <div class="char-counter">{localContent.length}/10000</div>
+        </div>
+
+        {#if error}
+          <p class="error-message">{error}</p>
+        {/if}
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" on:click={handleClose}
+            >取消</button
+          >
+          <button type="submit" class="btn-primary" disabled={loading}>
+            {#if loading}
+              <span>{editMode ? "保存中..." : "添加中..."}</span>
+            {:else}
+              <span>{editMode ? "确认保存" : "确认添加"}</span>
+            {/if}
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 {/if}
 
 <style>
-  .btn-gradient {
-    background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%) !important;
-    color: #fff !important;
-    opacity: 1 !important;
-    box-shadow: 0 2px 8px 0 rgba(37, 99, 235, 0.1);
-    border: 1px solid #2563eb;
-    transition: background 0.2s;
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
   }
-  .btn-gradient:hover {
-    background: linear-gradient(90deg, #1d4ed8 0%, #2563eb 100%) !important;
+  .modal-content {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow:
+      0 10px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    width: 90%;
+    max-width: 620px; /* Increased width for content */
+    padding: 2rem;
+    position: relative;
+    transform: scale(0.95);
+    opacity: 0;
+    animation: fadeIn 0.3s forwards;
+  }
+
+  @keyframes fadeIn {
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .modal-close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #9ca3af;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+  }
+  .modal-close-btn:hover {
+    background-color: #f3f4f6;
+    color: #1f2937;
+  }
+
+  .modal-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .modal-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+  }
+  .modal-subtitle {
+    margin-top: 0.5rem;
+    font-size: 1rem;
+    color: #6b7280;
   }
   .section-name {
     color: #059669;
     font-weight: 500;
-    margin-left: 0.5em;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+  }
+  .input-field {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #1f2937;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+  }
+  .input-field:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  }
+  textarea.input-field {
+    resize: vertical;
+    min-height: 120px;
+  }
+  .char-counter {
+    text-align: right;
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+  }
+
+  .error-message {
+    text-align: center;
+    color: #dc2626;
+    margin: 1rem 0;
+    font-weight: 500;
+  }
+
+  .form-actions {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+  .btn-primary,
+  .btn-secondary {
+    padding: 0.65rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background-color: #2563eb;
+    color: white;
+  }
+  .btn-primary:hover {
+    background-color: #1d4ed8;
+  }
+  .btn-primary:disabled {
+    background-color: #93c5fd;
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    background-color: #e5e7eb;
+    color: #374151;
+  }
+  .btn-secondary:hover {
+    background-color: #d1d5db;
   }
 </style>

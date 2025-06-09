@@ -9,6 +9,7 @@ export const load: PageLoad = async ({ params, fetch }) => {
     return {
       lesson,
       courseId: id,
+      sectionId,
     };
   } catch (e: unknown) {
     const err = e as Error;
