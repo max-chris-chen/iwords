@@ -36,6 +36,8 @@
   let editLessonLoading = false;
 
   $: currentSentenceObject = lesson?.sentences?.[currentSentenceIndex];
+  $: currentSentenceId = typeof currentSentenceObject === 'string' ? null : currentSentenceObject?._id;
+  $: currentSentenceRecordings = userRecordings.filter(r => r.sentenceId === currentSentenceId);
   $: currentSentenceText =
     (typeof currentSentenceObject === "string"
       ? currentSentenceObject
@@ -477,15 +479,13 @@
           </div>
         {/if}
 
-        {#if userRecordings.length > 0}
+        {#if currentSentenceRecordings.length > 0}
         <div class="recordings-list-container">
           <h3>我的跟读记录</h3>
           <ul class="recordings-list">
-            {#each userRecordings as recording}
+            {#each currentSentenceRecordings as recording}
               <li
                 class="recording-item"
-                class:current-sentence={recording.sentenceIndex ===
-                  currentSentenceIndex}
               >
                 <div class="recording-info">
                   <span>
@@ -496,7 +496,7 @@
                       </span>
                     {/if}
                   </span>
-                  <button class="btn-icon btn-delete" on:click={() => recording._id && deleteRecording(recording._id)}>
+                  <button class="btn-icon btn-delete" on:click={() => recording._id && deleteRecording(recording._id.toString())}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14"y1="11" y2="17"/></svg>
                   </button>
                 </div>

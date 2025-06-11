@@ -1,10 +1,10 @@
 import type { ObjectId } from 'mongodb';
 
 export interface UserRecording {
-  _id?: ObjectId;
-  userId: ObjectId;
-  lessonId: ObjectId;
-  sentenceIndex: number;
+  _id?: string;
+  userId: string;
+  lessonId: string;
+  sentenceId: string;
   recordingUrl: string;
   createdAt: Date;
   duration?: number; // in seconds
