@@ -1,7 +1,10 @@
 import type { Lesson } from "$lib/models/course";
 
 // Define types for lesson creation and update data
-type LessonCreateData = Omit<Lesson, "id">;
+type LessonCreateData = Omit<Lesson, "id" | "text" | "sentences"> & {
+  text?: string;
+  sentences?: Lesson["sentences"];
+};
 type LessonUpdateData = Partial<LessonCreateData>;
 
 export async function fetchLesson(

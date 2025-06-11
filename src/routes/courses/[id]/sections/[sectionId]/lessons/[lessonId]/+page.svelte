@@ -1,11 +1,12 @@
 <script lang="ts">
   import { page } from "$app/stores";
   import type { Lesson, LessonSentence } from "$lib/models/course";
-  import { onDestroy } from "svelte";
+  import { onDestroy , onMount} from "svelte";
   import AddLessonModal from "$lib/modals/AddLessonModal.svelte";
   import { updateLesson } from "$lib/api/lesson";
   import { goto } from "$app/navigation";
-
+  import { fetchRecordings } from "$lib/api/recording";
+  import type { UserRecording } from "$lib/models/recording";
   export let data;
 
   let { lesson, courseId, sectionId } = data;
@@ -25,7 +26,7 @@
   let recordingTimer: any = null;
   let isSubmitting = false;
   let submissionStatus: "success" | "error" | null = null;
-
+  let userRecordings: UserRecording[] = [];
   // UI state for edit lesson modal
   let showEditLessonModal = false;
   let editLessonTitle = "";
@@ -215,10 +216,11 @@
     submissionStatus = null;
     try {
       const formData = new FormData();
-      formData.append("recording", recordedAudioBlob, "recording.wav");
+      formData.append("audio", recordedAudioBlob, "recording.wav");
       if (!lesson._id) {
         throw new Error("当前课程没有ID，无法提交。");
       }
+      formData.append("courseId", courseId);
       formData.append("lessonId", lesson._id);
 
       const sentenceObject = lesson.sentences[currentSentenceIndex];
@@ -240,6 +242,9 @@
       if (response.ok) {
         submissionStatus = "success";
         alert("录音提交成功！");
+        if (lesson._id) {
+          userRecordings = await fetchRecordings(lesson._id);
+        }
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || "提交失败，请重试。");
@@ -252,7 +257,18 @@
       isSubmitting = false;
     }
   }
-
+  onMount(async () => {
+    console.debug("lesson", lesson);
+    console.debug("lesson._id", lesson._id);
+    if (lesson._id) {
+      try {
+        userRecordings = await fetchRecordings(lesson._id);
+        console.debug("userRecordings", userRecordings);
+      } catch (error) {
+        console.error("Failed to fetch recordings:", error);
+      }
+    }
+  });
   onDestroy(() => {
     if (typeof window !== "undefined") {
       window.speechSynthesis?.cancel();
@@ -386,6 +402,7 @@
       </p>
 
       {#if learningMode === 'reading'}
+
         <div class="recording-controls">
           {#if !isRecording}
             <button class="btn btn-primary" on:click={startRecording} disabled={isRecording}>
@@ -420,6 +437,33 @@
             {/if}
           </div>
         {/if}
+
+        {#if userRecordings.length > 0}
+        <div class="recordings-list-container">
+          <h3>我的跟读记录</h3>
+          <ul class="recordings-list">
+            {#each userRecordings as recording}
+              <li
+                class="recording-item"
+                class:current-sentence={recording.sentenceIndex ===
+                  currentSentenceIndex}
+              >
+                <div class="recording-info">
+                  <span
+                    >句子 {recording.sentenceIndex + 1}</span
+                  >
+                </div>
+                <audio
+                  controls
+                  src={`/api/audio/${recording.recordingUrl}`}
+                />
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
+
+
       {/if}
 
       {#if learningMode !== 'reading'}

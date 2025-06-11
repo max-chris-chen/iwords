@@ -17,11 +17,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const audioFile = formData.get('audio');
     const courseId = formData.get('courseId') as string;
     const lessonId = formData.get('lessonId') as string;
-    const sentenceIndex = parseInt(formData.get('sentenceIndex') as string, 10);
+    const sentenceId = formData.get('sentenceId') as string;
 
-    if (!audioFile || !(audioFile instanceof File) || !lessonId || isNaN(sentenceIndex)) {
+    if (!audioFile || !(audioFile instanceof File) || !lessonId || !sentenceId || !courseId) {
       return json(
-        { message: 'Invalid request data. Audio file, lessonId, and sentenceIndex are required.' },
+        { message: 'Invalid request data. Audio file, courseId, lessonId, and sentenceId are required.' },
         { status: 400 }
       );
     }
@@ -35,7 +35,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const recordingsPath = path.join(audioDir, 'recordings');
     await fs.mkdir(recordingsPath, { recursive: true });
 
-    const fileName = `u${user._id}_c${courseId}_l${lessonId}_s${sentenceIndex}_${Date.now()}.wav`;
+    const fileName = `u${user._id}_c${courseId}_l${lessonId}_s${sentenceId}_${Date.now()}.wav`;
     const filePath = path.join(recordingsPath, fileName);
     const relativePath = path.join('recordings', fileName);
 
@@ -51,7 +51,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const newRecording = {
       userId: new ObjectId(user._id),
       lessonId: new ObjectId(lessonId),
-      sentenceIndex: sentenceIndex,
+      sentenceId: new ObjectId(sentenceId),
       recordingUrl: relativePath,
       createdAt: new Date()
     };

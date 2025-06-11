@@ -43,6 +43,7 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
     }
     // AI 拆句
     let sentences: {
+      _id?: string;
       text: string;
       audioUrl?: string;
       caption?: CaptionChunk;
@@ -55,18 +56,22 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
       try {
         const arr = await splitTextToSentences(body.content);
         sentences = arr.map((t: string) => ({ text: t }));
-      } catch (err) {
-        // AI 失败不阻断主流程
-        console.error("DeepSeek splitTextToSentences error:", err);
-        sentences = [];
+      } catch (e) {
+        const message =
+          e instanceof Error ? e.message : "AI split text failed";
+        return new Response(JSON.stringify({ message }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
       }
     }
 
     // sentences 不为空则调用 tts
     if (sentences.length > 0) {
-      const { textToSpeech } = await import("$lib/ai");
-      for (const s of sentences) {
-        try {
+      try {
+        const { textToSpeech } = await import("$lib/ai");
+        for (const s of sentences) {
+          s._id = new ObjectId();
           const ttsRes = await textToSpeech(s.text);
           s.audioUrl = ttsRes.audioUrl; // 只存储文件路径
           if (ttsRes.speech_marks) {
@@ -79,9 +84,13 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
               s.caption = undefined;
             }
           }
-        } catch (err) {
-          console.error("TTS error for sentence:", s.text, err);
         }
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "AI tts failed";
+        return new Response(JSON.stringify({ message }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
       }
     }
 
@@ -100,7 +109,10 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to add lesson";
-    return new Response(message, { status: 500 });
+    return new Response(JSON.stringify({ message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 };
 
@@ -144,6 +156,9 @@ export const GET: RequestHandler = async ({ params, locals }) => {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to fetch lessons";
-    return new Response(message, { status: 500 });
+    return new Response(JSON.stringify({ message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 };

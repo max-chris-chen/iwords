@@ -278,8 +278,6 @@
       await createLesson(id, addLessonSectionId, {
         title: addLessonTitle,
         content: addLessonContent,
-        text: "",
-        sentences: [],
         sectionId: addLessonSectionId,
       });
       showAddLessonModal = false;
