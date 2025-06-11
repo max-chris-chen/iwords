@@ -27,6 +27,7 @@
   let isSubmitting = false;
   let submissionStatus: "success" | "error" | null = null;
   let userRecordings: UserRecording[] = [];
+  let isPreparingToRecord = false;
   // UI state for edit lesson modal
   let showEditLessonModal = false;
   let editLessonTitle = "";
@@ -157,32 +158,60 @@
   }
 
   async function startRecording() {
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    if (isRecording || isPreparingToRecord) return;
+
+    isPreparingToRecord = true;
+    recordedAudioUrl = null;
+    recordedAudioBlob = null;
+    recordingTime = 0;
+    audioChunks = [];
+
+    try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
+
+      mediaRecorder.onstart = () => {
+        isPreparingToRecord = false;
+        isRecording = true;
+        recordingTimer = setInterval(() => {
+          recordingTime++;
+        }, 1000);
       };
-      mediaRecorder.onstop = () => {
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        isRecording = false;
+        clearInterval(recordingTimer);
+        stream.getTracks().forEach(track => track.stop()); // Important cleanup
+
         const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
         recordedAudioUrl = URL.createObjectURL(audioBlob);
         recordedAudioBlob = audioBlob;
         audioChunks = [];
+
+        const success = await submitRecording();
+        if (success) {
+          alert("录音提交成功！");
+        }
       };
-      audioChunks = [];
+
       mediaRecorder.start();
-      isRecording = true;
-      recordingTime = 0;
-      recordingTimer = setInterval(() => {
-        recordingTime++;
-      }, 1000);
+
+    } catch (err) {
+      console.error("Error starting recording:", err);
+      alert("无法开始录音，请检查麦克风权限。");
+      isPreparingToRecord = false;
     }
   }
 
   function stopRecording() {
-    if (mediaRecorder) {
+    if (mediaRecorder && isRecording) {
       mediaRecorder.stop();
-      isRecording = false;
     }
   }
 
@@ -209,10 +238,9 @@
   async function submitRecording() {
     if (!recordedAudioBlob) {
       alert("没有可提交的录音。");
-      return;
+      return false;
     }
     isSubmitting = true;
-    submissionStatus = null;
     try {
       const formData = new FormData();
       formData.append("audio", recordedAudioBlob, "recording.webm");
@@ -240,19 +268,18 @@
       });
 
       if (response.ok) {
-        submissionStatus = "success";
-        alert("录音提交成功！");
         if (lesson._id) {
           userRecordings = await fetchRecordings(lesson._id);
         }
+        return true;
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || "提交失败，请重试。");
       }
     } catch (error) {
-      submissionStatus = "error";
       console.error("Submission error:", error);
       alert(`提交出错: ${error instanceof Error ? error.message : "未知错误"}`);
+      return false;
     } finally {
       isSubmitting = false;
     }
@@ -427,9 +454,13 @@
 
         <div class="recording-controls">
           {#if !isRecording}
-            <button class="btn btn-primary" on:click={startRecording} disabled={isRecording}>
+            <button class="btn btn-primary" on:click={startRecording} disabled={isPreparingToRecord}>
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-              <span>开始录音</span>
+              {#if isPreparingToRecord}
+                <span>准备中...</span>
+              {:else}
+                <span>开始录音</span>
+              {/if}
             </button>
           {:else}
             <button class="btn btn-danger" on:click={stopRecording} disabled={!isRecording}>
@@ -443,20 +474,6 @@
           <div class="recorded-audio">
             <h3>我的录音</h3>
             <audio controls src={recordedAudioUrl}></audio>
-            <button class="btn btn-primary" on:click={submitRecording} disabled={isSubmitting}>
-              {#if isSubmitting}
-                <span>提交中...</span>
-              {:else}
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-                <span>提交录音</span>
-              {/if}
-            </button>
-             {#if submissionStatus === 'success'}
-              <p class="success-message">提交成功！</p>
-            {/if}
-            {#if submissionStatus === 'error'}
-              <p class="error-message">提交失败，请重试。</p>
-            {/if}
           </div>
         {/if}
 
