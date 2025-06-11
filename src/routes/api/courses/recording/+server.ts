@@ -18,6 +18,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const courseId = formData.get('courseId') as string;
     const lessonId = formData.get('lessonId') as string;
     const sentenceId = formData.get('sentenceId') as string;
+    const durationStr = formData.get('duration') as string;
+    const duration = durationStr ? parseFloat(durationStr) : 0;
 
     if (!audioFile || !(audioFile instanceof File) || !lessonId || !sentenceId || !courseId) {
       return json(
@@ -25,6 +27,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         { status: 400 }
       );
     }
+
+    const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
 
     const audioDir = env.AUDIO_DIR;
     if (!audioDir) {
@@ -35,12 +39,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const recordingsPath = path.join(audioDir, 'recordings');
     await fs.mkdir(recordingsPath, { recursive: true });
 
-    const fileName = `u${user._id}_c${courseId}_l${lessonId}_s${sentenceId}_${Date.now()}.wav`;
+    const fileName = `u${user._id}_c${courseId}_l${lessonId}_s${sentenceId}_${Date.now()}.webm`;
     const filePath = path.join(recordingsPath, fileName);
     const relativePath = path.join('recordings', fileName);
 
-    const audioBuffer = await audioFile.arrayBuffer();
-    await fs.writeFile(filePath, Buffer.from(audioBuffer));
+    await fs.writeFile(filePath, audioBuffer);
 
     console.log(`Recording saved to ${filePath}`);
 
@@ -53,7 +56,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       lessonId: new ObjectId(lessonId),
       sentenceId: new ObjectId(sentenceId),
       recordingUrl: relativePath,
-      createdAt: new Date()
+      createdAt: new Date(),
+      duration: duration,
+      mimeType: 'audio/webm',
     };
 
     const result = await recordingsCollection.insertOne(newRecording);

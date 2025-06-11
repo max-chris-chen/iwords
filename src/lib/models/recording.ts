@@ -7,4 +7,6 @@ export interface UserRecording {
   sentenceIndex: number;
   recordingUrl: string;
   createdAt: Date;
+  duration?: number; // in seconds
+  mimeType?: string;
 }

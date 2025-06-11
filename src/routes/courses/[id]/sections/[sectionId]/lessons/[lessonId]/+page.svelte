@@ -164,11 +164,10 @@
         audioChunks.push(event.data);
       };
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-        recordedAudioBlob = audioBlob;
+        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
         recordedAudioUrl = URL.createObjectURL(audioBlob);
+        recordedAudioBlob = audioBlob;
         audioChunks = [];
-        clearInterval(recordingTimer);
       };
       audioChunks = [];
       mediaRecorder.start();
@@ -216,7 +215,7 @@
     submissionStatus = null;
     try {
       const formData = new FormData();
-      formData.append("audio", recordedAudioBlob, "recording.wav");
+      formData.append("audio", recordedAudioBlob, "recording.webm");
       if (!lesson._id) {
         throw new Error("当前课程没有ID，无法提交。");
       }
@@ -233,6 +232,7 @@
         throw new Error("当前句子没有ID，无法提交。");
       }
       formData.append("sentenceId", sentenceId);
+      formData.append("duration", recordingTime.toString());
 
       const response = await fetch("/api/courses/recording", {
         method: "POST",
@@ -257,6 +257,28 @@
       isSubmitting = false;
     }
   }
+
+  async function deleteRecording(recordingId: string) {
+    if (!confirm('确定要删除这条录音吗？')) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/recordings/${recordingId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        userRecordings = userRecordings.filter(r => r._id !== recordingId);
+        alert('录音已删除。');
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '删除失败。');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert(`删除出错: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  }
+
   onMount(async () => {
     console.debug("lesson", lesson);
     console.debug("lesson._id", lesson._id);
@@ -449,13 +471,21 @@
                   currentSentenceIndex}
               >
                 <div class="recording-info">
-                  <span
-                    >句子 {recording.sentenceIndex + 1}</span
-                  >
+                  <span>
+                    录制于: {new Date(recording.createdAt).toLocaleString()}
+                    {#if recording.duration}
+                      <span style="margin-left: 1rem;">
+                        (时长: {formatTime(recording.duration)})
+                      </span>
+                    {/if}
+                  </span>
+                  <button class="btn-icon btn-delete" on:click={() => recording._id && deleteRecording(recording._id)}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14"y1="11" y2="17"/></svg>
+                  </button>
                 </div>
                 <audio
                   controls
-                  src={`/api/audio/${recording.recordingUrl}`}
+                  src={`/api/audio/${recording.recordingUrl.replace(/\\/g, '/')}`}
                 />
               </li>
             {/each}
@@ -853,5 +883,53 @@
   .error-message {
     color: #ef4444;
     margin-top: 0.5rem;
+  }
+
+  .recordings-list-container {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .recordings-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .recording-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background-color: var(--card-bg-color);
+    border-radius: var(--rounded-lg);
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease-in-out;
+  }
+
+  .recording-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    font-size: 0.875rem;
+    color: var(--text-muted-color);
+  }
+
+  .btn-delete {
+    color: var(--text-muted-color);
+    transition: color 0.2s ease-in-out;
+  }
+
+  .btn-delete:hover {
+    color: var(--danger-color);
+  }
+
+  .recording-duration {
+    font-weight: 500;
   }
 </style>
