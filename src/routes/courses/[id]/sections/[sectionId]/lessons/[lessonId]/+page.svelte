@@ -28,6 +28,7 @@
   let submissionStatus: "success" | "error" | null = null;
   let userRecordings: UserRecording[] = [];
   let isPreparingToRecord = false;
+  let audioContext: AudioContext | null = null;
   // UI state for edit lesson modal
   let showEditLessonModal = false;
   let editLessonTitle = "";
@@ -66,6 +67,64 @@
 
   function closeEditLessonModal() {
     showEditLessonModal = false;
+  }
+
+  function initAudioContext() {
+    if (typeof window !== "undefined" && !audioContext) {
+      try {
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        // Attempt to resume context immediately, as this is happening inside a user interaction handler
+        if (audioContext.state === "suspended") {
+          audioContext.resume().then(() => {
+            console.log("AudioContext resumed on mode switch.");
+          });
+        }
+      } catch (e) {
+        console.error("Web Audio API is not supported in this browser.", e);
+      }
+    }
+  }
+
+  function playKeySound() {
+    if (typeof window === "undefined") return;
+
+    if (!audioContext) {
+      // Fallback for page reloads directly into writing mode
+      initAudioContext();
+      if (!audioContext) return;
+    }
+
+    // The _play function remains the same
+    function _play() {
+      if (!audioContext) return;
+      const now = audioContext.currentTime;
+      const gainNode = audioContext.createGain();
+      gainNode.connect(audioContext.destination);
+
+      // A slightly softer volume and a decay that gives it a bit of "body"
+      gainNode.gain.setValueAtTime(0.2, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+
+      const oscillator = audioContext.createOscillator();
+      oscillator.connect(gainNode);
+      oscillator.type = 'triangle'; // Triangle wave is softer than a square wave
+
+      // A rapid pitch drop simulates a "strike" or "thwack" sound.
+      oscillator.frequency.setValueAtTime(880, now); // Start at a higher pitch
+      oscillator.frequency.exponentialRampToValueAtTime(440, now + 0.05); // Quickly drop to a lower one
+
+      oscillator.start(now);
+      oscillator.stop(now + 0.1); // Sound lasts for 0.1 seconds
+    }
+
+    if (audioContext.state === 'suspended') {
+      audioContext.resume().then(() => {
+        console.log("AudioContext resumed on key press.");
+        _play();
+      });
+    } else {
+      _play();
+    }
   }
 
   async function handleEditLessonModalEdit(e: CustomEvent) {
@@ -109,6 +168,13 @@
   }
 
   function handleKeyDown(event: KeyboardEvent, index: number) {
+    // Only play sound for character keys and backspace
+    if (
+        !event.metaKey && !event.ctrlKey && !event.altKey &&
+        (event.key.length === 1 || event.key === 'Backspace')
+    ) {
+      playKeySound();
+    }
     const target = event.target as HTMLInputElement;
 
     if (event.key === ' ') {
@@ -382,14 +448,13 @@
         console.error("Failed to fetch recordings:", error);
       }
     }
-    if (typeof window !== 'undefined') {
-      // keySound = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU Rock/by/4//g/+H/7//x//H/8P/v//f/7v/t/+z/6v/q/+n/5//l/+b/5v/n/+f/6P/q/+v/7f/u/+7/7//w//H/8v/z//P/9P/1//b/9//4//n/+v/7//z///8AAAA=");
-      // keySound.preload = 'auto';
-    }
   });
   onDestroy(() => {
     if (typeof window !== "undefined") {
       window.speechSynthesis?.cancel();
+    }
+    if (audioContext) {
+      audioContext.close();
     }
   });
 </script>
@@ -458,6 +523,7 @@
           on:click={() => {
             learningMode = 'writing';
             clearWritingState();
+            initAudioContext();
           }}>听写模式</button>
       </div>
     </div>

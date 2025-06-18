@@ -50,8 +50,3 @@ For details, see: https://docs.github.com/en/copilot/customizing-copilot/adding-
 ---
 
 _This file provides Copilot and developers with project-specific instructions to ensure consistency and best practices across the codebase._
-It’s a love letter to web development.
-It’s a love letter to web development
-It’s a love letter to web development.
-It’s a love letter to web development
-It’s a love letter to web development.
