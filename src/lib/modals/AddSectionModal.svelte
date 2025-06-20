@@ -1,17 +1,23 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
-
-  export let onAdd: (() => void) | undefined;
-  export let onClose: (() => void) | undefined;
-  export let onEdit: (() => void) | undefined; // Removed payload for simplicity
-  export let open: boolean;
-  export let newTitle: string = "";
-  export let error: string = "";
-  export let loading: boolean = false;
-  export let editMode: boolean = false;
-  export let editTitle: string = "";
-
-  const dispatch = createEventDispatcher();
+  let {
+    onAdd,
+    onEdit,
+    open = $bindable(false),
+    newTitle = $bindable(""),
+    error = "",
+    loading = false,
+    editMode = false,
+    editTitle = $bindable(""),
+  } = $props<{
+    onAdd?: () => void;
+    onEdit?: () => void;
+    open?: boolean;
+    newTitle?: string;
+    error?: string;
+    loading?: boolean;
+    editMode?: boolean;
+    editTitle?: string;
+  }>();
 
   function handleSubmit() {
     if (editMode) {
@@ -22,7 +28,7 @@
   }
 
   function handleClose() {
-    if (onClose) onClose();
+    open = false;
   }
 
   function handleKeydown(e: KeyboardEvent) {

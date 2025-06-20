@@ -1,0 +1,22 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+---
+description: API Route development guidelines
+globs:
+  - "src/routes/api/**/*.ts"
+alwaysApply: false
+---
+
+# API Route Guidelines
+
+When creating or editing API routes, please follow these conventions:
+
+- **File Naming**: API routes should be in `kebab-case.ts`.
+- **HTTP Methods**: Use the `+server.ts` file convention and export named functions for HTTP methods (e.g., `export async function GET({ params }) { ... }`).
+- **Request/Response**: Use the provided `RequestEvent` object for handling requests. Return `Response` objects or use functions from `@sveltejs/kit` like `json` for responses.
+- **Error Handling**: Implement robust error handling. Use `error` from `@sveltejs/kit` to throw HTTP errors.
+- **Validation**: Validate incoming data using a library like Zod. Do not trust user input.
+- **Database**: Import database functions from `src/lib/server/database.ts` when you need to interact with the database.

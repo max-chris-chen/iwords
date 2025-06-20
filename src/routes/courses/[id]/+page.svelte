@@ -34,47 +34,42 @@
     totalHours?: number;
   }
 
-  let course: CourseWithSections | null = null;
-  let loading = true;
-  let error = "";
+  let course = $state<CourseWithSections | null>(null);
+  let loading = $state(true);
+  let error = $state("");
 
   // UI state for adding section
-  let newSectionTitle = "";
-  let sectionError = "";
+  let newSectionTitle = $state("");
+  let sectionError = $state("");
 
   // UI state for section modal
-  let showSectionModal = false;
-  let showEditSectionModal = false;
-  let editSectionId: string | null = null;
-  let editSectionTitle = "";
-  let actionLoading = false;
+  let showSectionModal = $state(false);
+  let showEditSectionModal = $state(false);
+  let editSectionId = $state<string | null>(null);
+  let editSectionTitle = $state("");
+  let actionLoading = $state(false);
 
   // UI state for add lesson modal
-  let showAddLessonModal = false;
-  let addLessonSectionId: string | null = null;
-  let addLessonSectionTitle = "";
-  let addLessonTitle = "";
-  let addLessonContent = "";
-  let addLessonError = "";
-  let addLessonLoading = false;
+  let showAddLessonModal = $state(false);
+  let addLessonSectionId = $state<string | null>(null);
+  let addLessonSectionTitle = $state("");
+  let addLessonTitle = $state("");
+  let addLessonContent = $state("");
+  let addLessonError = $state("");
+  let addLessonLoading = $state(false);
 
   // UI state for edit lesson modal
-  let showEditLessonModal = false;
-  let editLessonSectionId: string | null = null;
-  let editLessonId: string | null = null;
-  let editLessonTitle = "";
-  let editLessonContent = "";
-  let editLessonError = "";
-  let editLessonLoading = false;
-  let editLessonSectionTitle = "";
+  let showEditLessonModal = $state(false);
+  let editLessonSectionId = $state<string | null>(null);
+  let editLessonId = $state<string | null>(null);
+  let editLessonTitle = $state("");
+  let editLessonContent = $state("");
+  let editLessonError = $state("");
+  let editLessonLoading = $state(false);
+  let editLessonSectionTitle = $state("");
 
   function openSectionModal() {
     showSectionModal = true;
-    newSectionTitle = "";
-    sectionError = "";
-  }
-  function closeSectionModal() {
-    showSectionModal = false;
     newSectionTitle = "";
     sectionError = "";
   }
@@ -86,7 +81,7 @@
     }
     await addSection();
     if (!sectionError) {
-      closeSectionModal();
+      showSectionModal = false;
     }
   }
 
@@ -94,12 +89,6 @@
     showEditSectionModal = true;
     editSectionId = section._id || null;
     editSectionTitle = section.title;
-    sectionError = "";
-  }
-  function closeEditSectionModal() {
-    showEditSectionModal = false;
-    editSectionId = null;
-    editSectionTitle = "";
     sectionError = "";
   }
   async function handleEditSection() {
@@ -634,46 +623,63 @@
 {/if}
 
 <AddSectionModal
-  open={showSectionModal}
+  bind:open={showSectionModal}
+  bind:newTitle={newSectionTitle}
   error={sectionError}
   loading={actionLoading}
-  bind:newTitle={newSectionTitle}
-  editMode={false}
   onAdd={handleAddSection}
-  onEdit={noop}
-  onClose={closeSectionModal}
 />
 <AddSectionModal
-  open={showEditSectionModal}
-  error={sectionError}
-  loading={actionLoading}
+  bind:open={showEditSectionModal}
   bind:editTitle={editSectionTitle}
   editMode={true}
-  onAdd={noop}
+  error={sectionError}
+  loading={actionLoading}
   onEdit={handleEditSection}
-  onClose={closeEditSectionModal}
 />
 <AddLessonModal
-  open={showAddLessonModal}
-  loading={addLessonLoading}
-  error={addLessonError}
-  newTitle={addLessonTitle}
-  newContent={addLessonContent}
+  bind:open={showAddLessonModal}
+  bind:newTitle={addLessonTitle}
+  bind:newContent={addLessonContent}
   sectionTitle={addLessonSectionTitle}
-  on:save={handleAddLessonModalSave}
-  on:close={closeAddLessonModal}
-  editMode={false}
+  error={addLessonError}
+  loading={addLessonLoading}
+  on:save={async (e) => {
+    addLessonError = "";
+    if (!addLessonSectionId) {
+      addLessonError = "Section not found.";
+      return;
+    }
+    if (!e.detail.title.trim()) {
+      addLessonError = "Lesson title required";
+      return;
+    }
+    addLessonLoading = true;
+    const id = get(page).params.id;
+    try {
+      await createLesson(id, addLessonSectionId, {
+        title: e.detail.title,
+        content: e.detail.content,
+      });
+      showAddLessonModal = false;
+      await fetchCourse();
+    } catch (err: unknown) {
+      const error = err as ApiError;
+      addLessonError = error.message || "创建失败";
+    } finally {
+      addLessonLoading = false;
+    }
+  }}
 />
 <AddLessonModal
-  open={showEditLessonModal}
-  loading={editLessonLoading}
-  error={editLessonError}
+  bind:open={showEditLessonModal}
   editMode={true}
-  editTitle={editLessonTitle}
-  editContent={editLessonContent}
+  bind:editTitle={editLessonTitle}
+  bind:editContent={editLessonContent}
   sectionTitle={editLessonSectionTitle}
+  error={editLessonError}
+  loading={editLessonLoading}
   on:edit={handleEditLessonModalEdit}
-  on:close={closeEditLessonModal}
 />
 
 <style>

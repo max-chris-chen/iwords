@@ -1,14 +1,25 @@
 <script lang="ts">
   import type { LessonSentence } from "$lib/models/course";
 
-  export let sentence: LessonSentence;
-  export let sentenceIdx: number;
-  export let dictationInputs: string[];
-  export let dictationResult: boolean | null;
-  export let inputRefs: (HTMLInputElement | null)[];
-  export let onInputChange: (wi: number, value: string) => void;
-  export let onCheck: () => void;
-  export let onPlayKeySound: () => void;
+  let {
+    sentence,
+    sentenceIdx,
+    dictationInputs,
+    dictationResult,
+    inputRefs,
+    onInputChange,
+    onCheck,
+    onPlayKeySound,
+  } = $props<{
+    sentence: LessonSentence;
+    sentenceIdx: number;
+    dictationInputs: string[];
+    dictationResult: boolean | null;
+    inputRefs: (HTMLInputElement | null)[];
+    onInputChange: (wi: number, value: string) => void;
+    onCheck: () => void;
+    onPlayKeySound: () => void;
+  }>();
 
   // stripPunct 用于高亮错误
   function stripPunct(str: string) {

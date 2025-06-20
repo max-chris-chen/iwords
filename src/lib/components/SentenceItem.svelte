@@ -2,18 +2,33 @@
   import DictationInput from "./DictationInput.svelte";
   import type { LessonSentence } from "$lib/models/course";
 
-  export let sentence: LessonSentence;
-  export let idx: number;
-  export let mode: "listen" | "read" | "dictation";
-  export let playingIdx: number;
-  export let onPlay: (idx: number) => void;
-  export let updateLessonSentences: () => void;
-  export let dictationInputs: string[];
-  export let dictationResult: boolean | null;
-  export let inputRefs: (HTMLInputElement | null)[];
-  export let checkDictation: (idx: number) => void;
-  export let playKeySound: () => void;
-  export let onInputChange: (wi: number, value: string) => void;
+  let {
+    sentence,
+    idx,
+    mode,
+    playingIdx,
+    onPlay,
+    updateLessonSentences,
+    dictationInputs,
+    dictationResult,
+    inputRefs,
+    checkDictation,
+    playKeySound,
+    onInputChange,
+  } = $props<{
+    sentence: LessonSentence;
+    idx: number;
+    mode: "listen" | "read" | "dictation";
+    playingIdx: number;
+    onPlay: (idx: number) => void;
+    updateLessonSentences: () => void;
+    dictationInputs: string[];
+    dictationResult: boolean | null;
+    inputRefs: (HTMLInputElement | null)[];
+    checkDictation: (idx: number) => void;
+    playKeySound: () => void;
+    onInputChange: (wi: number, value: string) => void;
+  }>();
 </script>
 
 <li class="border rounded p-3 flex flex-col gap-2">

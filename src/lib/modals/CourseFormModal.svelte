@@ -1,32 +1,42 @@
 <script lang="ts">
-  import { createEventDispatcher, onMount } from "svelte";
+  import { createEventDispatcher } from "svelte";
   import type { Course } from "$lib/models/course";
   import { CourseStatus } from "$lib/models/course";
 
-  export let open = false;
-  export let loading = false;
-  export let error = "";
-  export let editMode = false;
-  export let course: Course | null = null;
+  let {
+    open = $bindable(false),
+    loading = false,
+    error = "",
+    editMode = false,
+    course = null,
+  } = $props<{
+    open?: boolean;
+    loading?: boolean;
+    error?: string;
+    editMode?: boolean;
+    course?: Course | null;
+  }>();
 
-  let title = "";
-  let description = "";
-  let isPublic = false;
-  let status = CourseStatus.Draft;
+  let title = $state("");
+  let description = $state("");
+  let isPublic = $state(false);
+  let status = $state(CourseStatus.Draft);
 
-  $: if (open) {
-    if (editMode && course) {
-      title = course.title;
-      description = course.description || "";
-      isPublic = course.isPublic;
-      status = course.status || CourseStatus.Draft;
-    } else {
-      title = "";
-      description = "";
-      isPublic = false;
-      status = CourseStatus.Draft;
+  $effect(() => {
+    if (open) {
+      if (editMode && course) {
+        title = course.title;
+        description = course.description || "";
+        isPublic = course.isPublic;
+        status = course.status || CourseStatus.Draft;
+      } else {
+        title = "";
+        description = "";
+        isPublic = false;
+        status = CourseStatus.Draft;
+      }
     }
-  }
+  });
 
   const dispatch = createEventDispatcher();
 
@@ -35,7 +45,7 @@
   }
 
   function handleClose() {
-    dispatch("close");
+    open = false;
   }
 
   function handleKeydown(e: KeyboardEvent) {

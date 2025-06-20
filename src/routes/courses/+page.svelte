@@ -4,15 +4,15 @@
   import { onMount } from "svelte";
   import type { Course } from "$lib/models/course";
 
-  let courses: Course[] = [];
-  let loading = true;
-  let error = "";
+  let courses = $state<Course[]>([]);
+  let loading = $state(true);
+  let error = $state("");
 
-  let showModal = false;
-  let modalLoading = false;
-  let modalError = "";
-  let editMode = false;
-  let editCourseData: Course | null = null;
+  let showModal = $state(false);
+  let modalLoading = $state(false);
+  let modalError = $state("");
+  let editMode = $state(false);
+  let editCourseData = $state<Course | null>(null);
 
   onMount(async () => {
     loading = true;
@@ -43,10 +43,6 @@
     modalError = "";
   }
 
-  function closeModal() {
-    showModal = false;
-  }
-
   async function handleSaveCourse(event: CustomEvent) {
     const { title, description, isPublic, status } = event.detail;
     modalLoading = true;
@@ -70,13 +66,12 @@
         const index = courses.findIndex((c) => c._id === editCourseData?._id);
         if (index !== -1) {
           courses[index] = { ...courses[index], ...savedCourse };
-          courses = [...courses];
         }
       } else {
-        courses = [savedCourse, ...courses];
+        courses.unshift(savedCourse);
       }
 
-      closeModal();
+      showModal = false;
     } catch (e: unknown) {
       const err = e as Error;
       modalError = err.message || "Failed to save course";
@@ -246,13 +241,12 @@
 </div>
 
 <CourseFormModal
-  open={showModal}
+  bind:open={showModal}
   loading={modalLoading}
   error={modalError}
-  editMode={editMode}
+  {editMode}
   course={editCourseData}
   on:save={handleSaveCourse}
-  on:close={closeModal}
 />
 
 <style>

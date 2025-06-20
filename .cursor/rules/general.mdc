@@ -1,0 +1,21 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# 项目技术栈和约定
+
+这是一个使用 SvelteKit 构建的全栈 Web 应用。在您开始编码之前，请了解以下关键技术和约定：
+
+- **框架**: Svelte5 SvelteKit
+- **语言**: TypeScript
+- **UI 库**: 我们没有使用特定的 UI 库，组件位于 src/lib/components。
+- **样式**: 使用全局 CSS src/app.css 以及组件内的 scoped 样式。
+- **代码格式化**: Prettier (配置见 .prettierrc.json)
+- **代码检查**: ESLint (配置见 eslint.config.js)
+- **数据库**: MongoDB (通过 src/lib/mongodb.ts 连接)
+**通用编码指南**:
+- 遵循现有的代码风格。
+- 编写可读、可维护的代码。
+- 尽可能添加注释，特别是对于复杂的逻辑。
+- 所有文本只支持中文。

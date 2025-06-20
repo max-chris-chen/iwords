@@ -1,16 +1,29 @@
 <script lang="ts">
   import SentenceItem from "$lib/components/SentenceItem.svelte";
   import type { LessonSentence } from "$lib/models/course";
-  export let sentences: LessonSentence[];
-  export let mode: "listen" | "read" | "dictation";
-  export let playingIdx: number;
-  export let onPlay: (idx: number) => void;
-  export let updateLessonSentences: () => void;
-  export let dictationInputs: string[][];
-  export let dictationResults: (boolean | null)[];
-  export let dictationInputRefs: Array<Array<HTMLInputElement | null>>;
-  export let checkDictation: (idx: number) => void;
-  export let playKeySound: () => void;
+  let {
+    sentences,
+    mode,
+    playingIdx,
+    onPlay,
+    updateLessonSentences,
+    dictationInputs,
+    dictationResults,
+    dictationInputRefs,
+    checkDictation,
+    playKeySound,
+  } = $props<{
+    sentences: LessonSentence[];
+    mode: "listen" | "read" | "dictation";
+    playingIdx: number;
+    onPlay: (idx: number) => void;
+    updateLessonSentences: () => void;
+    dictationInputs: string[][];
+    dictationResults: (boolean | null)[];
+    dictationInputRefs: Array<Array<HTMLInputElement | null>>;
+    checkDictation: (idx: number) => void;
+    playKeySound: () => void;
+  }>();
 </script>
 
 <ul class="space-y-2">

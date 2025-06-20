@@ -1,35 +1,35 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
-  let text = "";
-  let playing = false;
-  let audio: HTMLAudioElement | null = null;
-  let audioData = "";
-  let audioFormat = "";
-  let speechMarks: {
+  let text = $state("");
+  let playing = $state(false);
+  let audio = $state<HTMLAudioElement | null>(null);
+  let audioData = $state("");
+  let audioFormat = $state("");
+  let speechMarks = $state<{
     chunks?: {
       start_time: number;
       end_time: number;
       start: number;
       end: number;
     }[];
-  } | null = null;
-  let currentWordIdx = -1;
-  let words: {
+  } | null>(null);
+  let currentWordIdx = $state(-1);
+  let words = $state<{
     start_time: number;
     end_time: number;
     start: number;
     end: number;
-  }[] = [];
-  let speed = 1.0;
+  }[]>([]);
+  let speed = $state(1.0);
 
   // 用户登录状态
-  let user: {
+  let user = $state<{
     username?: string;
     nickname?: string;
     avatarUrl?: string;
-  } | null = null;
-  let loadingUser = true;
+  } | null>(null);
+  let loadingUser = $state(true);
 
   async function synthesize() {
     playing = false;

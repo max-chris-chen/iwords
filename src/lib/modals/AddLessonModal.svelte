@@ -1,24 +1,39 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  export let open = false;
-  export let loading = false;
-  export let error = "";
-  export let newTitle = "";
-  export let newContent = "";
-  export let sectionTitle = "";
-  export let editMode = false;
-  export let editTitle = "";
-  export let editContent = "";
+
+  let {
+    open = $bindable(false),
+    loading = false,
+    error = "",
+    newTitle = "",
+    newContent = "",
+    sectionTitle = "",
+    editMode = false,
+    editTitle = "",
+    editContent = "",
+  } = $props<{
+    open?: boolean;
+    loading?: boolean;
+    error?: string;
+    newTitle?: string;
+    newContent?: string;
+    sectionTitle?: string;
+    editMode?: boolean;
+    editTitle?: string;
+    editContent?: string;
+  }>();
 
   const dispatch = createEventDispatcher();
 
-  let localTitle = editMode ? editTitle : newTitle;
-  let localContent = editMode ? editContent : newContent;
+  let localTitle = $state(editMode ? editTitle : newTitle);
+  let localContent = $state(editMode ? editContent : newContent);
 
-  $: if (open) {
-    localTitle = editMode ? editTitle : newTitle;
-    localContent = editMode ? editContent : newContent;
-  }
+  $effect(() => {
+    if (open) {
+      localTitle = editMode ? editTitle : newTitle;
+      localContent = editMode ? editContent : newContent;
+    }
+  });
 
   function handleSave() {
     if (editMode) {
@@ -28,7 +43,7 @@
     }
   }
   function handleClose() {
-    dispatch("close");
+    open = false;
   }
 
   function handleKeydown(e: KeyboardEvent) {

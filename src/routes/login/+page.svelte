@@ -1,18 +1,18 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
-  let email = "";
-  let password = "";
-  let name = "";
-  let confirmPassword = "";
-  let apiError = "";
-  let apiSuccess = "";
-  let loading = false;
+  let email = $state("");
+  let password = $state("");
+  let name = $state("");
+  let confirmPassword = $state("");
+  let apiError = $state("");
+  let apiSuccess = $state("");
+  let loading = $state(false);
 
-  let isLoginMode = true;
+  let isLoginMode = $state(true);
 
-  let passwordFieldType = "password";
-  let confirmPasswordFieldType = "password";
+  let passwordFieldType = $state("password");
+  let confirmPasswordFieldType = $state("password");
 
   // 检查是否已登录，已登录则跳转首页
   onMount(async () => {
@@ -116,7 +116,7 @@
     </div>
     <h1 class="logo-title">iWords</h1>
     <p class="logo-subtitle">AI驱动的智能英语学习平台</p>
-    
+
     <!-- AI Features Showcase -->
     <div class="features-grid">
       <div class="feature-card">
@@ -128,7 +128,7 @@
         <h3>AI语音合成</h3>
         <p>真人级别的语音朗读，支持多种语速调节</p>
       </div>
-      
+
       <div class="feature-card">
         <div class="feature-icon">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,7 +138,7 @@
         <h3>智能分句</h3>
         <p>AI自动将文章拆分为句子，精准定位每个单词</p>
       </div>
-      
+
       <div class="feature-card">
         <div class="feature-icon">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -157,7 +157,7 @@
       <h2>{isLoginMode ? "登录账户" : "创建账户"}</h2>
       <p>开启您的AI英语学习之旅</p>
     </div>
-    
+
     <div class="card-content">
       <form on:submit|preventDefault={handleSubmit}>
         <!-- Name Field (只在注册时显示) -->
