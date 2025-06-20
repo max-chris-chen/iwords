@@ -14,7 +14,6 @@
   let passwordFieldType = $state("password");
   let confirmPasswordFieldType = $state("password");
 
-  // 检查是否已登录，已登录则跳转首页
   onMount(async () => {
     try {
       const res = await fetch("/api/users/me");
@@ -35,7 +34,6 @@
   function toggleAuthMode() {
     isLoginMode = !isLoginMode;
     clearMessages();
-    // Reset fields
     email = "";
     password = "";
     name = "";
@@ -57,12 +55,11 @@
     loading = true;
 
     if (isLoginMode) {
-      // Login logic
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: email, // API expects username
+          username: email,
           password: password,
         }),
       });
@@ -73,7 +70,6 @@
         apiError = data.error || "登录失败";
       }
     } else {
-      // Register logic
       if (password !== confirmPassword) {
         apiError = "两次输入的密码不一致！";
         loading = false;
@@ -83,9 +79,9 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: email, // Assuming username is email
+          username: email,
           password: password,
-          name: name, // The provided login.html has a name field. Let's send it.
+          name: name,
         }),
       });
       const data = await res.json();
@@ -101,7 +97,6 @@
 </script>
 
 <div class="container">
-  <!-- Hero Section with AI Features -->
   <div class="hero-section">
     <div class="logo">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,7 +112,6 @@
     <h1 class="logo-title">iWords</h1>
     <p class="logo-subtitle">AI驱动的智能英语学习平台</p>
 
-    <!-- AI Features Showcase -->
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon">
@@ -151,7 +145,6 @@
     </div>
   </div>
 
-  <!-- Auth Card -->
   <div class="auth-card">
     <div class="card-header">
       <h2>{isLoginMode ? "登录账户" : "创建账户"}</h2>
@@ -160,7 +153,6 @@
 
     <div class="card-content">
       <form on:submit|preventDefault={handleSubmit}>
-        <!-- Name Field (只在注册时显示) -->
         {#if !isLoginMode}
           <div class="form-group">
             <label class="form-label" for="name">姓名</label>
@@ -189,7 +181,6 @@
           </div>
         {/if}
 
-        <!-- Email Field -->
         <div class="form-group">
           <label class="form-label" for="email">
             {#if isLoginMode}用户名或邮箱{:else}邮箱{/if}
@@ -219,7 +210,6 @@
           </div>
         </div>
 
-        <!-- Password Field -->
         <div class="form-group">
           <label class="form-label" for="password">密码</label>
           <div class="input-wrapper">
@@ -276,7 +266,6 @@
           </div>
         </div>
 
-        <!-- Confirm Password Field (只在注册时显示) -->
         {#if !isLoginMode}
           <div class="form-group">
             <label class="form-label" for="confirmPassword">确认密码</label>
@@ -334,7 +323,6 @@
           </div>
         {/if}
 
-        <!-- Forgot Password (只在登录时显示) -->
         {#if isLoginMode}
           <div class="forgot-password">
             <a href="#forgot">忘记密码？</a>
@@ -348,7 +336,6 @@
           <div class="api-success">{apiSuccess}</div>
         {/if}
 
-        <!-- Submit Button -->
         <button type="submit" class="submit-btn" disabled={loading}>
           <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -363,7 +350,6 @@
         </button>
       </form>
 
-      <!-- Auth Switch -->
       <div class="auth-switch">
         <span>
           {#if isLoginMode}

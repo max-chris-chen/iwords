@@ -5,12 +5,12 @@
     open = $bindable(false),
     loading = false,
     error = "",
-    newTitle = "",
-    newContent = "",
+    newTitle = $bindable(""),
+    newContent = $bindable(""),
     sectionTitle = "",
     editMode = false,
-    editTitle = "",
-    editContent = "",
+    editTitle = $bindable(""),
+    editContent = $bindable(""),
   } = $props<{
     open?: boolean;
     loading?: boolean;
@@ -93,7 +93,7 @@
           <input
             id="lesson-title"
             class="input-field"
-            placeholder="Lesson title"
+            placeholder="请输入 Lesson 标题"
             bind:value={localTitle}
             aria-label="Lesson title"
             autofocus
@@ -105,7 +105,7 @@
           <textarea
             id="lesson-content"
             class="input-field"
-            placeholder="Lesson content"
+            placeholder="请输入 Lesson 内容"
             bind:value={localContent}
             aria-label="Lesson content"
             maxlength="10000"

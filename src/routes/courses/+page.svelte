@@ -131,11 +131,11 @@
   </div>
 
   {#if loading}
-    <p>Loading...</p>
+    <p>加载中...</p>
   {:else if error}
     <div style="color:red">{error}</div>
   {:else if courses.length === 0}
-    <p>No courses found.</p>
+    <p>没有找到课程。</p>
   {:else}
     <div class="courses-grid">
       {#each courses as course (course._id)}

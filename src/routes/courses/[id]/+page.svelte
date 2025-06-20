@@ -76,7 +76,7 @@
   async function handleAddSection() {
     sectionError = "";
     if (!newSectionTitle.trim()) {
-      sectionError = "Section title required";
+      sectionError = "章节标题不能为空";
       return;
     }
     await addSection();
@@ -94,11 +94,11 @@
   async function handleEditSection() {
     sectionError = "";
     if (!editSectionTitle.trim()) {
-      sectionError = "Section title required";
+      sectionError = "章节标题不能为空";
       return;
     }
     if (!editSectionId) {
-      sectionError = "Section not found";
+      sectionError = "未找到章节";
       return;
     }
     actionLoading = true;
@@ -137,7 +137,7 @@
       course = courseData;
     } catch (e: unknown) {
       const apiError = e as Error;
-      error = apiError.message || "Failed to load course details";
+      error = apiError.message || "加载课程详情失败";
     } finally {
       loading = false;
     }
@@ -148,7 +148,7 @@
   async function addSection() {
     sectionError = "";
     if (!newSectionTitle.trim()) {
-      sectionError = "Section title required";
+      sectionError = "章节标题不能为空";
       return;
     }
     const id = get(page).params.id;
@@ -181,12 +181,12 @@
     editLessonError = "";
     editLessonLoading = true;
     if (!editLessonSectionId || !editLessonId) {
-      editLessonError = "Lesson not found.";
+      editLessonError = "未找到 Lesson";
       editLessonLoading = false;
       return;
     }
     if (!e.detail.title.trim()) {
-      editLessonError = "Lesson title required";
+      editLessonError = "Lesson 标题不能为空";
       editLessonLoading = false;
       return;
     }

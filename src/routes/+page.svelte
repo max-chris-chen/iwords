@@ -151,7 +151,7 @@
     <button on:click={logout}>登出</button>
   </div>
   <div>
-    <textarea bind:value={text} rows="4" cols="50" placeholder="Enter text..."
+    <textarea bind:value={text} rows="4" cols="50" placeholder="请输入英文..."
     ></textarea>
     <div style="margin: 10px 0;">
       <label for="speed">播放速度: </label>
