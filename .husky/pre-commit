@@ -1,10 +1,4 @@
-#!/usr/bin/env node
-const { execSync } = require("child_process");
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
 
-try {
-  execSync("pnpm format", { stdio: "inherit" });
-  execSync("pnpm lint", { stdio: "inherit" });
-} catch (err) {
-  console.error("Lint or format failed, aborting commit.");
-  process.exit(1);
-}
+pnpm format && pnpm lint
