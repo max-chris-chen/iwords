@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
   import { invalidateAll, goto } from "$app/navigation";
   import "../app.css";
 
@@ -10,7 +10,7 @@
   }
 </script>
 
-{#if $page.url.pathname !== "/login" && $page.url.pathname !== "/register"}
+{#if page.url.pathname !== "/login" && page.url.pathname !== "/register"}
   <nav class="top-nav">
     <div class="nav-container">
       <div class="nav-left">
@@ -28,19 +28,19 @@
       </div>
 
       <nav class="top-main-nav">
-        <a href="/" class="nav-item" class:active={$page.url.pathname === "/"}
+        <a href="/" class="nav-item" class:active={page.url.pathname === "/"}
           >首页</a
         >
         <a
           href="/courses"
           class="nav-item"
-          class:active={$page.url.pathname.startsWith("/courses")}>我的课程</a
+          class:active={page.url.pathname.startsWith("/courses")}>我的课程</a
         >
         <a href="#" class="nav-item">探索</a>
       </nav>
 
       <div class="nav-right">
-        {#if $page.data.user}
+        {#if page.data.user}
           <div class="user-menu">
             <div class="user-avatar">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,7 +52,7 @@
                 ></path>
               </svg>
             </div>
-            <span class="username">{$page.data.user.username}</span>
+            <span class="username">{page.data.user.username}</span>
             <div class="dropdown">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -80,8 +80,8 @@
 
 <main
   class="main-content-area"
-  class:no-nav={$page.url.pathname === "/login" ||
-    $page.url.pathname === "/register"}
+  class:no-nav={page.url.pathname === "/login" ||
+    page.url.pathname === "/register"}
 >
   <slot />
 </main>
