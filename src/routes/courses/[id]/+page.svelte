@@ -6,11 +6,7 @@
   import type { Course, Lesson, Section } from "$lib/models/course";
   import { onMount } from "svelte";
   import { get } from "svelte/store";
-  import {
-    createLesson,
-    updateLesson,
-    fetchLessons,
-  } from "$lib/api/lesson";
+  import { createLesson, updateLesson, fetchLessons } from "$lib/api/lesson";
   import {
     createSection,
     updateSection,
