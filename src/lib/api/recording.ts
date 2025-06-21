@@ -12,4 +12,3 @@ export async function fetchRecordings(
   }
   return res.json();
 }
-

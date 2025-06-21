@@ -1,3 +1,4 @@
+import { getAuthenticatedUserId } from "$lib/server/auth";
 import { getDb } from "$lib/mongodb";
 import type { RequestHandler } from "@sveltejs/kit";
 import { ObjectId } from "mongodb";
@@ -5,9 +6,7 @@ import { CourseStatus } from "$lib/models/course";
 
 export const GET: RequestHandler = async ({ params, locals }) => {
   try {
-    if (!locals.user?._id) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+    const userId = getAuthenticatedUserId(locals);
     const db = await getDb();
     let courseId: ObjectId;
     try {
@@ -17,7 +16,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
     }
     const course = await db
       .collection("courses")
-      .findOne({ _id: courseId, user: locals.user._id });
+      .findOne({ _id: courseId, user: userId });
     if (!course) {
       return new Response("Not found", { status: 404 });
     }
@@ -64,9 +63,7 @@ export const POST: RequestHandler = async ({
   url,
 }) => {
   try {
-    if (!locals.user?._id) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+    const userId = getAuthenticatedUserId(locals);
     const db = await getDb();
     let courseId: ObjectId;
     try {
@@ -76,7 +73,7 @@ export const POST: RequestHandler = async ({
     }
     const course = await db
       .collection("courses")
-      .findOne({ _id: courseId, user: locals.user._id });
+      .findOne({ _id: courseId, user: userId });
     if (!course) {
       return new Response("Not found", { status: 404 });
     }
@@ -156,9 +153,7 @@ export const POST: RequestHandler = async ({
 
 export const PUT: RequestHandler = async ({ params, locals, request }) => {
   try {
-    if (!locals.user?._id) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+    const userId = getAuthenticatedUserId(locals);
     const db = await getDb();
     let courseId: ObjectId;
     try {
@@ -168,7 +163,7 @@ export const PUT: RequestHandler = async ({ params, locals, request }) => {
     }
     const course = await db
       .collection("courses")
-      .findOne({ _id: courseId, user: locals.user._id });
+      .findOne({ _id: courseId, user: userId });
     if (!course) {
       return new Response("Not found", { status: 404 });
     }
@@ -198,7 +193,7 @@ export const PUT: RequestHandler = async ({ params, locals, request }) => {
       const sectionObjectId = new ObjectId(body.deleteSectionId);
       const result = await db
         .collection("courses")
-        .updateOne({ _id: courseId, user: locals.user._id }, {
+        .updateOne({ _id: courseId, user: userId }, {
           $pull: { sections: { _id: sectionObjectId } },
         } as unknown as import("mongodb").UpdateFilter<
           import("mongodb").Document
@@ -226,7 +221,7 @@ export const PUT: RequestHandler = async ({ params, locals, request }) => {
         updateFields["sections.$[section].lessons.$[lesson].content"] =
           body.editLesson.content;
       const result = await db.collection("courses").updateOne(
-        { _id: courseId },
+        { _id: courseId, user: userId },
         { $set: updateFields },
         {
           arrayFilters: [
@@ -251,29 +246,35 @@ export const PUT: RequestHandler = async ({ params, locals, request }) => {
     if (body.coverImage !== undefined) update.coverImage = body.coverImage;
     if (body.description !== undefined) update.description = body.description;
     if (body.isPublic !== undefined) update.isPublic = body.isPublic;
-    if (body.status !== undefined && Object.values(CourseStatus).includes(body.status)) {
+    if (
+      body.status !== undefined &&
+      Object.values(CourseStatus).includes(body.status)
+    ) {
       update.status = body.status;
     }
 
-    if (Object.keys(update).length > 0) {
-      update.updatedAt = new Date();
+    update.updatedAt = new Date();
+    if (Object.keys(update).length > 1) {
       const result = await db
         .collection("courses")
-        .updateOne({ _id: courseId, user: locals.user._id }, { $set: update });
+        .updateOne({ _id: courseId, user: userId }, { $set: update });
 
       if (result.modifiedCount === 1) {
         const updatedCourse = await db
           .collection("courses")
           .findOne({ _id: courseId });
-        return new Response(JSON.stringify(updatedCourse), {
+        return new Response(JSON.stringify(update), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });
+      } else {
+        return new Response("Course not found or not updated", { status: 404 });
       }
-      return new Response("Course not found or not updated", { status: 404 });
+    } else {
+      return new Response(JSON.stringify({ message: "No fields to update" }), {
+        status: 200,
+      });
     }
-
-    return new Response("No valid fields to update", { status: 400 });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to update course";
     return new Response(message, { status: 500 });

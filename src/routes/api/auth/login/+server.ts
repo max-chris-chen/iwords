@@ -2,7 +2,8 @@ import type { User } from "$lib/models/user";
 import { connectToDatabase } from "$lib/mongodb";
 import { json } from "@sveltejs/kit";
 import bcrypt from "bcryptjs";
-import { v4 as uuidv4 } from "uuid";
+import jwt from "jsonwebtoken";
+import { JWT_SECRET, NODE_ENV } from "$env/static/private";
 
 export async function POST({ request, cookies }) {
   const { username, password } = await request.json();
@@ -26,19 +27,20 @@ export async function POST({ request, cookies }) {
       return json({ error: "Invalid username or password." }, { status: 401 });
     }
 
-    // Create session
-    const sessionId = uuidv4();
-    const sessionsCollection = db.collection("sessions");
-    await sessionsCollection.insertOne({
-      sessionId,
-      userId: user._id,
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    });
-    cookies.set("sessionId", sessionId, {
+    // Create JWT
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        username: user.username,
+        role: user.role,
+      },
+      JWT_SECRET,
+      { expiresIn: "7d" },
+    );
+    cookies.set("token", token, {
       path: "/",
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60,
     });

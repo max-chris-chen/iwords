@@ -1,3 +1,4 @@
+import { getAuthenticatedUserId } from "$lib/server/auth";
 import { getDb } from "$lib/mongodb";
 import type { RequestHandler } from "@sveltejs/kit";
 import { ObjectId } from "mongodb";
@@ -5,9 +6,7 @@ import { ObjectId } from "mongodb";
 // PATCH /api/courses/[id]/sections/[sectionId]/lessons/[lessonId]
 export const PATCH: RequestHandler = async ({ params, locals, request }) => {
   try {
-    if (!locals.user?._id) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+    const userId = getAuthenticatedUserId(locals);
     const db = await getDb();
     let courseId: ObjectId;
     let sectionId: ObjectId;
@@ -22,7 +21,7 @@ export const PATCH: RequestHandler = async ({ params, locals, request }) => {
     // 校验课程归属
     const course = await db
       .collection("courses")
-      .findOne({ _id: courseId, user: locals.user._id });
+      .findOne({ _id: courseId, user: userId });
     if (!course) {
       return new Response("Not found", { status: 404 });
     }
@@ -61,9 +60,7 @@ export const PATCH: RequestHandler = async ({ params, locals, request }) => {
 // DELETE /api/courses/[id]/sections/[sectionId]/lessons/[lessonId]
 export const DELETE: RequestHandler = async ({ params, locals }) => {
   try {
-    if (!locals.user?._id) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+    const userId = getAuthenticatedUserId(locals);
     const db = await getDb();
     let courseId: ObjectId;
     let sectionId: ObjectId;
@@ -78,7 +75,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     // 校验课程归属
     const course = await db
       .collection("courses")
-      .findOne({ _id: courseId, user: locals.user._id });
+      .findOne({ _id: courseId, user: userId });
     if (!course) {
       return new Response("Not found", { status: 404 });
     }
@@ -109,9 +106,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 // GET /api/courses/[id]/sections/[sectionId]/lessons/[lessonId]
 export const GET: RequestHandler = async ({ params, locals }) => {
   try {
-    if (!locals.user?._id) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+    const userId = getAuthenticatedUserId(locals);
     const db = await getDb();
     let courseId: ObjectId;
     let sectionId: ObjectId;
@@ -126,7 +121,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
     // 校验课程归属
     const course = await db
       .collection("courses")
-      .findOne({ _id: courseId, user: locals.user._id });
+      .findOne({ _id: courseId, user: userId });
     if (!course) {
       return new Response("Not found", { status: 404 });
     }

@@ -1,15 +1,15 @@
 import { getDb } from "$lib/mongodb";
+import { getAuthenticatedUserId } from "$lib/server/auth";
 import type { RequestHandler } from "@sveltejs/kit";
 
 export const GET: RequestHandler = async ({ locals }) => {
   try {
-    if (!locals.user?._id) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+    const userId = getAuthenticatedUserId(locals);
+
     const db = await getDb();
     const courses = await db
       .collection("courses")
-      .find({ user: locals.user._id })
+      .find({ user: userId })
       .sort({ createdAt: -1 })
       .toArray();
     return new Response(JSON.stringify(courses), {

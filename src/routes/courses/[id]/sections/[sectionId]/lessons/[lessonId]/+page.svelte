@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from "$app/stores";
   import type { Lesson, LessonSentence } from "$lib/models/course";
-  import { onDestroy , onMount} from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import AddLessonModal from "$lib/modals/AddLessonModal.svelte";
   import { updateLesson } from "$lib/api/lesson";
   import { goto } from "$app/navigation";
@@ -40,12 +40,19 @@
   let writingFeedback = "";
   let wordCorrectness: (boolean | null)[] = [];
 
-  $: allWordsCorrect = wordCorrectness.length > 0 && wordCorrectness.every(c => c === true);
-  $: someWordsIncorrect = wordCorrectness.length > 0 && wordCorrectness.some(c => c === false);
+  $: allWordsCorrect =
+    wordCorrectness.length > 0 && wordCorrectness.every((c) => c === true);
+  $: someWordsIncorrect =
+    wordCorrectness.length > 0 && wordCorrectness.some((c) => c === false);
 
   $: currentSentenceObject = lesson?.sentences?.[currentSentenceIndex];
-  $: currentSentenceId = typeof currentSentenceObject === 'string' ? null : currentSentenceObject?._id;
-  $: currentSentenceRecordings = userRecordings.filter(r => r.sentenceId === currentSentenceId);
+  $: currentSentenceId =
+    typeof currentSentenceObject === "string"
+      ? null
+      : currentSentenceObject?._id;
+  $: currentSentenceRecordings = userRecordings.filter(
+    (r) => r.sentenceId === currentSentenceId,
+  );
   $: currentSentenceText =
     (typeof currentSentenceObject === "string"
       ? currentSentenceObject
@@ -53,10 +60,9 @@
   $: words = currentSentenceText.split(" ");
   $: maskedSentence = currentSentenceText.replace(/[a-zA-Z]/g, "*");
   $: if (words.length > 0) {
-    userInputs = Array(words.length).fill('');
+    userInputs = Array(words.length).fill("");
     wordCorrectness = Array(words.length).fill(null);
   }
-
 
   function openEditLessonModal() {
     showEditLessonModal = true;
@@ -72,7 +78,8 @@
   function initAudioContext() {
     if (typeof window !== "undefined" && !audioContext) {
       try {
-        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioContext = new (window.AudioContext ||
+          (window as any).webkitAudioContext)();
         // Attempt to resume context immediately, as this is happening inside a user interaction handler
         if (audioContext.state === "suspended") {
           audioContext.resume().then(() => {
@@ -107,7 +114,7 @@
 
       const oscillator = audioContext.createOscillator();
       oscillator.connect(gainNode);
-      oscillator.type = 'triangle'; // Triangle wave is softer than a square wave
+      oscillator.type = "triangle"; // Triangle wave is softer than a square wave
 
       // A rapid pitch drop simulates a "strike" or "thwack" sound.
       oscillator.frequency.setValueAtTime(880, now); // Start at a higher pitch
@@ -117,7 +124,7 @@
       oscillator.stop(now + 0.1); // Sound lasts for 0.1 seconds
     }
 
-    if (audioContext.state === 'suspended') {
+    if (audioContext.state === "suspended") {
       audioContext.resume().then(() => {
         console.log("AudioContext resumed on key press.");
         _play();
@@ -170,39 +177,59 @@
   function handleKeyDown(event: KeyboardEvent, index: number) {
     // Only play sound for character keys and backspace
     if (
-        !event.metaKey && !event.ctrlKey && !event.altKey &&
-        (event.key.length === 1 || event.key === 'Backspace')
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      (event.key.length === 1 || event.key === "Backspace")
     ) {
       playKeySound();
     }
     const target = event.target as HTMLInputElement;
 
-    if (event.key === ' ') {
+    if (event.key === " ") {
       event.preventDefault();
       if (index < words.length - 1) {
         (target.nextElementSibling as HTMLInputElement)?.focus();
       }
-    } else if (event.key === 'ArrowRight' && target.selectionStart === userInputs[index].length && index < words.length - 1) {
+    } else if (
+      event.key === "ArrowRight" &&
+      target.selectionStart === userInputs[index].length &&
+      index < words.length - 1
+    ) {
       event.preventDefault();
       (target.nextElementSibling as HTMLInputElement)?.focus();
-    } else if (event.key === 'ArrowLeft' && target.selectionStart === 0 && index > 0) {
+    } else if (
+      event.key === "ArrowLeft" &&
+      target.selectionStart === 0 &&
+      index > 0
+    ) {
       event.preventDefault();
       (target.previousElementSibling as HTMLInputElement)?.focus();
-    } else if (event.key === 'Backspace' && target.selectionStart === 0 && target.selectionEnd === 0 && index > 0) {
-        (target.previousElementSibling as HTMLInputElement)?.focus();
+    } else if (
+      event.key === "Backspace" &&
+      target.selectionStart === 0 &&
+      target.selectionEnd === 0 &&
+      index > 0
+    ) {
+      (target.previousElementSibling as HTMLInputElement)?.focus();
     }
   }
 
   function checkAnswer() {
     const newWordCorrectness = words.map((correctWord, i) => {
-      const userWord = userInputs[i] || '';
-      const cleanUserWord = userWord.trim().replace(/[.,/#!$%^&*;:{}=\-_`~()'’]/g,"").toLowerCase();
-      const cleanCorrectWord = correctWord.replace(/[.,/#!$%^&*;:{}=\-_`~()'’]/g,"").toLowerCase();
+      const userWord = userInputs[i] || "";
+      const cleanUserWord = userWord
+        .trim()
+        .replace(/[.,/#!$%^&*;:{}=\-_`~()'’]/g, "")
+        .toLowerCase();
+      const cleanCorrectWord = correctWord
+        .replace(/[.,/#!$%^&*;:{}=\-_`~()'’]/g, "")
+        .toLowerCase();
       return cleanUserWord === cleanCorrectWord;
     });
     wordCorrectness = newWordCorrectness;
 
-    const allCorrect = newWordCorrectness.every(c => c === true);
+    const allCorrect = newWordCorrectness.every((c) => c === true);
 
     if (allCorrect) {
       writingFeedback = "太棒了，完全正确！";
@@ -318,7 +345,7 @@
       mediaRecorder.onstop = async () => {
         isRecording = false;
         clearInterval(recordingTimer);
-        stream.getTracks().forEach(track => track.stop()); // Important cleanup
+        stream.getTracks().forEach((track) => track.stop()); // Important cleanup
 
         const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
         recordedAudioUrl = URL.createObjectURL(audioBlob);
@@ -332,7 +359,6 @@
       };
 
       mediaRecorder.start();
-
     } catch (err) {
       console.error("Error starting recording:", err);
       alert("无法开始录音，请检查麦克风权限。");
@@ -353,7 +379,7 @@
     recordedAudioUrl = null;
     audioChunks = [];
     if (mediaRecorder?.stream) {
-      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      mediaRecorder.stream.getTracks().forEach((track) => track.stop());
     }
     mediaRecorder = null;
     clearInterval(recordingTimer);
@@ -363,7 +389,7 @@
   function formatTime(seconds: number) {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
 
   async function submitRecording() {
@@ -417,23 +443,23 @@
   }
 
   async function deleteRecording(recordingId: string) {
-    if (!confirm('确定要删除这条录音吗？')) {
+    if (!confirm("确定要删除这条录音吗？")) {
       return;
     }
     try {
       const response = await fetch(`/api/recordings/${recordingId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       if (response.ok) {
-        userRecordings = userRecordings.filter(r => r._id !== recordingId);
-        alert('录音已删除。');
+        userRecordings = userRecordings.filter((r) => r._id !== recordingId);
+        alert("录音已删除。");
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || '删除失败。');
+        throw new Error(errorData.message || "删除失败。");
       }
     } catch (error) {
-      console.error('Delete error:', error);
-      alert(`删除出错: ${error instanceof Error ? error.message : '未知错误'}`);
+      console.error("Delete error:", error);
+      alert(`删除出错: ${error instanceof Error ? error.message : "未知错误"}`);
     }
   }
 
@@ -472,8 +498,7 @@
         stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round"
-        class="lucide lucide-chevron-left"
-        ><path d="m15 18-6-6 6-6" /></svg
+        class="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6" /></svg
       >
       <span>返回课程</span>
     </a>
@@ -495,9 +520,22 @@
           >
         </div>
       </div>
-       <div class="mt-4 flex justify-end">
+      <div class="mt-4 flex justify-end">
         <button class="btn" on:click={openEditLessonModal}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pencil"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-pencil"
+            ><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+            ></path></svg
+          >
           <span>编辑</span>
         </button>
       </div>
@@ -507,24 +545,27 @@
       <h2>学习模式</h2>
       <div class="mode-switcher">
         <button
-          class:active={learningMode === 'listening'}
+          class:active={learningMode === "listening"}
           on:click={() => {
-            learningMode = 'listening';
+            learningMode = "listening";
             clearWritingState();
-          }}>听力模式</button>
+          }}>听力模式</button
+        >
         <button
-          class:active={learningMode === 'reading'}
+          class:active={learningMode === "reading"}
           on:click={() => {
-            learningMode = 'reading';
+            learningMode = "reading";
             clearWritingState();
-          }}>跟读模式</button>
+          }}>跟读模式</button
+        >
         <button
-          class:active={learningMode === 'writing'}
+          class:active={learningMode === "writing"}
           on:click={() => {
-            learningMode = 'writing';
+            learningMode = "writing";
             clearWritingState();
             initAudioContext();
-          }}>听写模式</button>
+          }}>听写模式</button
+        >
       </div>
     </div>
 
@@ -581,7 +622,7 @@
     </div>
 
     <div class="card sentence-card">
-      {#if learningMode === 'writing'}
+      {#if learningMode === "writing"}
         <div class="writing-mode-container">
           <p class="sentence-text">
             {#if showSentence}
@@ -610,29 +651,71 @@
           </div>
 
           <div class="writing-actions">
-             <button class="btn btn-primary" on:click={checkAnswer} disabled={userInputs.join('').trim() === ''}>检查</button>
-             <button class="btn-icon btn-reveal" on:click={() => (showSentence = !showSentence)}>
+            <button
+              class="btn btn-primary"
+              on:click={checkAnswer}
+              disabled={userInputs.join("").trim() === ""}>检查</button
+            >
+            <button
+              class="btn-icon btn-reveal"
+              on:click={() => (showSentence = !showSentence)}
+            >
               {#if showSentence}
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye-off"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" x2="22" y1="2" y2="22" /></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-eye-off"
+                  ><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path
+                    d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
+                  /><path
+                    d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"
+                  /><line x1="2" x2="22" y1="2" y2="22" /></svg
+                >
                 <span>隐藏答案</span>
               {:else}
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-eye"
+                  ><path
+                    d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+                  /><circle cx="12" cy="12" r="3" /></svg
+                >
                 <span>查看答案</span>
               {/if}
             </button>
           </div>
 
           {#if writingFeedback}
-            <p class="feedback" class:correct={allWordsCorrect} class:incorrect={someWordsIncorrect}>{writingFeedback}</p>
+            <p
+              class="feedback"
+              class:correct={allWordsCorrect}
+              class:incorrect={someWordsIncorrect}
+            >
+              {writingFeedback}
+            </p>
           {/if}
-
         </div>
       {:else}
         <p class="sentence-text">
-          {#if showSentence || learningMode === 'reading'}
+          {#if showSentence || learningMode === "reading"}
             {#each words as word, i}
               <span class:highlight={i === highlightedWordIndex}>{word}</span>
-              {' '}
+              {" "}
             {/each}
           {:else}
             {maskedSentence}
@@ -640,12 +723,34 @@
         </p>
       {/if}
 
-      {#if learningMode === 'reading'}
-
+      {#if learningMode === "reading"}
         <div class="recording-controls">
           {#if !isRecording}
-            <button class="btn btn-primary" on:click={startRecording} disabled={isPreparingToRecord}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+            <button
+              class="btn btn-primary"
+              on:click={startRecording}
+              disabled={isPreparingToRecord}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-mic"
+                ><path
+                  d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"
+                /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line
+                  x1="12"
+                  x2="12"
+                  y1="19"
+                  y2="22"
+                /></svg
+              >
               {#if isPreparingToRecord}
                 <span>准备中...</span>
               {:else}
@@ -653,8 +758,29 @@
               {/if}
             </button>
           {:else}
-            <button class="btn btn-danger" on:click={stopRecording} disabled={!isRecording}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-stop-circle"><circle cx="12" cy="12" r="10"/><rect width="6" height="6" x="9" y="9"/></svg>
+            <button
+              class="btn btn-danger"
+              on:click={stopRecording}
+              disabled={!isRecording}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-stop-circle"
+                ><circle cx="12" cy="12" r="10" /><rect
+                  width="6"
+                  height="6"
+                  x="9"
+                  y="9"
+                /></svg
+              >
               <span>停止录音 ({formatTime(recordingTime)})</span>
             </button>
           {/if}
@@ -668,41 +794,64 @@
         {/if}
 
         {#if currentSentenceRecordings.length > 0}
-        <div class="recordings-list-container">
-          <h3>我的跟读记录</h3>
-          <ul class="recordings-list">
-            {#each currentSentenceRecordings as recording}
-              <li
-                class="recording-item"
-              >
-                <div class="recording-info">
-                  <span>
-                    录制于: {new Date(recording.createdAt).toLocaleString()}
-                    {#if recording.duration}
-                      <span style="margin-left: 1rem;">
-                        (时长: {formatTime(recording.duration)})
-                      </span>
-                    {/if}
-                  </span>
-                  <button class="btn-icon btn-delete" on:click={() => recording._id && deleteRecording(recording._id.toString())}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14"y1="11" y2="17"/></svg>
-                  </button>
-                </div>
-                <audio
-                  controls
-                  src={`/api/audio/${recording.recordingUrl.replace(/\\/g, '/')}`}
-                />
-              </li>
-            {/each}
-          </ul>
-        </div>
+          <div class="recordings-list-container">
+            <h3>我的跟读记录</h3>
+            <ul class="recordings-list">
+              {#each currentSentenceRecordings as recording}
+                <li class="recording-item">
+                  <div class="recording-info">
+                    <span>
+                      录制于: {new Date(recording.createdAt).toLocaleString()}
+                      {#if recording.duration}
+                        <span style="margin-left: 1rem;">
+                          (时长: {formatTime(recording.duration)})
+                        </span>
+                      {/if}
+                    </span>
+                    <button
+                      class="btn-icon btn-delete"
+                      on:click={() =>
+                        recording._id &&
+                        deleteRecording(recording._id.toString())}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="lucide lucide-trash-2"
+                        ><path d="M3 6h18" /><path
+                          d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                        /><line x1="10" x2="10" y1="11" y2="17" /><line
+                          x1="14"
+                          x2="14"
+                          y1="11"
+                          y2="17"
+                        /></svg
+                      >
+                    </button>
+                  </div>
+                  <audio
+                    controls
+                    src={`/api/audio/${recording.recordingUrl.replace(/\\/g, "/")}`}
+                  />
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
       {/if}
 
-
-      {/if}
-
-      {#if learningMode !== 'reading' && learningMode !== 'writing'}
-        <button class="btn-icon btn-reveal" on:click={() => (showSentence = !showSentence)}>
+      {#if learningMode !== "reading" && learningMode !== "writing"}
+        <button
+          class="btn-icon btn-reveal"
+          on:click={() => (showSentence = !showSentence)}
+        >
           {#if showSentence}
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -720,7 +869,9 @@
               <path
                 d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
               />
-              <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+              <path
+                d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"
+              />
               <line x1="2" x2="22" y1="2" y2="22" />
             </svg>
             <span>隐藏</span>
@@ -748,7 +899,11 @@
       {/if}
 
       <div class="navigation-buttons">
-        <button class="btn" on:click={prevSentence} disabled={currentSentenceIndex === 0}>
+        <button
+          class="btn"
+          on:click={prevSentence}
+          disabled={currentSentenceIndex === 0}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="20"
@@ -767,7 +922,8 @@
         <button
           class="btn btn-primary"
           on:click={nextSentence}
-          disabled={lesson && currentSentenceIndex === (lesson.sentences.length || 0) - 1}
+          disabled={lesson &&
+            currentSentenceIndex === (lesson.sentences.length || 0) - 1}
         >
           <span>下一个</span>
           <svg
@@ -820,16 +976,8 @@
     margin: 0 auto;
     background-color: var(--bg-color);
     font-family:
-      -apple-system,
-      BlinkMacSystemFont,
-      "Segoe UI",
-      Roboto,
-      Helvetica,
-      Arial,
-      sans-serif,
-      "Apple Color Emoji",
-      "Segoe UI Emoji",
-      "Segoe UI Symbol";
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+      sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     display: flex;
     flex-direction: column;
     gap: 1rem;

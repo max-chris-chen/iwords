@@ -1,4 +1,5 @@
 import { splitTextToSentences } from "$lib/ai";
+import { getAuthenticatedUserId } from "$lib/server/auth";
 import type { CaptionChunk } from "$lib/models/course";
 import { getDb } from "$lib/mongodb";
 import type { RequestHandler } from "@sveltejs/kit";
@@ -7,9 +8,7 @@ import { ObjectId } from "mongodb";
 // POST /api/courses/[id]/sections/[sectionId]/lessons
 export const POST: RequestHandler = async ({ params, locals, request }) => {
   try {
-    if (!locals.user?._id) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+    const userId = getAuthenticatedUserId(locals);
     const db = await getDb();
     let courseId: ObjectId;
     let sectionId: ObjectId;
@@ -22,7 +21,7 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
     // 校验课程归属
     const course = await db
       .collection("courses")
-      .findOne({ _id: courseId, user: locals.user._id });
+      .findOne({ _id: courseId, user: userId });
     if (!course) {
       return new Response("Not found", { status: 404 });
     }
@@ -57,8 +56,7 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
         const arr = await splitTextToSentences(body.content);
         sentences = arr.map((t: string) => ({ text: t }));
       } catch (e) {
-        const message =
-          e instanceof Error ? e.message : "AI split text failed";
+        const message = e instanceof Error ? e.message : "AI split text failed";
         return new Response(JSON.stringify({ message }), {
           status: 500,
           headers: { "Content-Type": "application/json" },
@@ -118,9 +116,7 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
 
 export const GET: RequestHandler = async ({ params, locals }) => {
   try {
-    if (!locals.user?._id) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+    const userId = getAuthenticatedUserId(locals);
     const db = await getDb();
     let courseId: ObjectId;
     let sectionId: ObjectId;
@@ -133,7 +129,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
     const course = await db
       .collection("courses")
-      .findOne({ _id: courseId, user: locals.user._id });
+      .findOne({ _id: courseId, user: userId });
     if (!course) {
       return new Response("Not found", { status: 404 });
     }

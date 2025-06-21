@@ -15,12 +15,14 @@
     }[];
   } | null>(null);
   let currentWordIdx = $state(-1);
-  let words = $state<{
-    start_time: number;
-    end_time: number;
-    start: number;
-    end: number;
-  }[]>([]);
+  let words = $state<
+    {
+      start_time: number;
+      end_time: number;
+      start: number;
+      end: number;
+    }[]
+  >([]);
   let speed = $state(1.0);
 
   // 用户登录状态

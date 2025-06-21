@@ -1,34 +1,34 @@
-import { env } from '$env/dynamic/private';
-import { getDb } from '$lib/mongodb';
-import { error, json } from '@sveltejs/kit';
-import { ObjectId } from 'mongodb';
-import type { RequestHandler } from './$types';
-import fs from 'fs/promises';
-import path from 'path';
+import { env } from "$env/dynamic/private";
+import { getDb } from "$lib/mongodb";
+import { error, json } from "@sveltejs/kit";
+import { ObjectId } from "mongodb";
+import type { RequestHandler } from "./$types";
+import fs from "fs/promises";
+import path from "path";
 
 export const DELETE: RequestHandler = async ({ params, locals }) => {
   const user = locals.user;
   if (!user) {
-    throw error(401, 'Unauthorized');
+    throw error(401, "Unauthorized");
   }
 
   const { id } = params;
   if (!id || !ObjectId.isValid(id)) {
-    throw error(400, 'Invalid recording ID');
+    throw error(400, "Invalid recording ID");
   }
 
   const recordingId = new ObjectId(id);
   const db = await getDb();
-  const recordingsCollection = db.collection('user_recordings');
+  const recordingsCollection = db.collection("user_recordings");
 
   const recording = await recordingsCollection.findOne({ _id: recordingId });
 
   if (!recording) {
-    throw error(404, 'Recording not found');
+    throw error(404, "Recording not found");
   }
 
   if (recording.userId.toHexString() !== user._id.toHexString()) {
-    throw error(403, 'Forbidden');
+    throw error(403, "Forbidden");
   }
 
   // Delete file from filesystem
@@ -47,5 +47,5 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
   // Delete from database
   await recordingsCollection.deleteOne({ _id: recordingId });
 
-  return json({ message: 'Recording deleted successfully' }, { status: 200 });
+  return json({ message: "Recording deleted successfully" }, { status: 200 });
 };

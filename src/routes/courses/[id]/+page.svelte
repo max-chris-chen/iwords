@@ -351,8 +351,7 @@
           stroke="currentColor"
           stroke-width="2"
           stroke-linecap="round"
-          stroke-linejoin="round"
-          ><path d="M19 12H5M12 19l-7-7 7-7" /></svg
+          stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg
         >
         <span>返回课程列表</span>
       </a>
@@ -379,8 +378,7 @@
         <div class="course-info">
           <h1>{course.title}</h1>
           <p class="course-description">
-            {course.description ||
-              ""}
+            {course.description || ""}
           </p>
           <div class="course-stats">
             <span class="stat">
@@ -588,11 +586,7 @@
                           <button
                             class="btn-start-lesson"
                             on:click|stopPropagation={() => {
-                              if (
-                                course?._id &&
-                                section?._id &&
-                                lesson?._id
-                              ) {
+                              if (course?._id && section?._id && lesson?._id) {
                                 goto(
                                   `/courses/${course._id}/sections/${section._id}/lessons/${lesson._id}`,
                                 );
@@ -738,7 +732,8 @@
     display: flex;
     gap: 2rem;
     align-items: flex-start;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    box-shadow:
+      0 1px 3px 0 rgba(0, 0, 0, 0.1),
       0 1px 2px -1px rgba(0, 0, 0, 0.1);
   }
   .course-image-placeholder {
@@ -953,7 +948,8 @@
     border-radius: 0.75rem;
     padding: 2rem;
     text-align: center;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    box-shadow:
+      0 1px 3px 0 rgba(0, 0, 0, 0.1),
       0 1px 2px -1px rgba(0, 0, 0, 0.1);
   }
   .no-sections-card p {

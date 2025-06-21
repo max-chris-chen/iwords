@@ -1,17 +1,14 @@
 import { CourseStatus, type Course } from "$lib/models/course";
 import { getDb } from "$lib/mongodb";
+import { getAuthenticatedUserId } from "$lib/server/auth";
 import type { RequestHandler } from "@sveltejs/kit";
+import { ObjectId } from "mongodb";
 
 export const POST: RequestHandler = async ({ request, locals }) => {
   try {
+    const userId = getAuthenticatedUserId(locals);
     const db = await getDb();
     const data = await request.json();
-
-    // 这里假设已登录用户ID在 locals.user._id
-    const userId = locals.user?._id || data.user || null;
-    if (!userId) {
-      return new Response("Unauthorized", { status: 401 });
-    }
 
     const now = new Date();
     const course: Course = {

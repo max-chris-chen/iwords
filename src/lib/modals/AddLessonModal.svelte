@@ -3,8 +3,8 @@
 
   let {
     open = $bindable(false),
-    loading = false,
-    error = "",
+    loading = $bindable(false),
+    error = $bindable(""),
     newTitle = $bindable(""),
     newContent = $bindable(""),
     sectionTitle = "",
