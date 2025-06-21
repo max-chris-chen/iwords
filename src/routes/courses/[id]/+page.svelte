@@ -1,11 +1,10 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
   import AddLessonModal from "$lib/modals/AddLessonModal.svelte";
   import AddSectionModal from "$lib/modals/AddSectionModal.svelte";
   import type { Course, Lesson, Section } from "$lib/models/course";
   import { onMount } from "svelte";
-  import { get } from "svelte/store";
   import { createLesson, updateLesson, fetchLessons } from "$lib/api/lesson";
   import {
     createSection,
@@ -97,7 +96,7 @@
       return;
     }
     actionLoading = true;
-    const id = get(page).params.id;
+    const id = page.params.id;
     try {
       await updateSection(id, editSectionId, { title: editSectionTitle });
       showEditSectionModal = false;
@@ -115,7 +114,7 @@
   async function fetchCourse() {
     loading = true;
     error = "";
-    const id = get(page).params.id;
+    const id = page.params.id;
     try {
       const res = await fetch(`/api/courses/${id}`);
       if (!res.ok) throw new Error(await res.text());
@@ -146,7 +145,7 @@
       sectionError = "章节标题不能为空";
       return;
     }
-    const id = get(page).params.id;
+    const id = page.params.id;
     try {
       await createSection(id, { title: newSectionTitle });
       newSectionTitle = "";
@@ -160,7 +159,7 @@
   async function deleteSection(sectionId: string) {
     if (!confirm("确定要删除该 Section 吗？")) return;
     actionLoading = true;
-    const id = get(page).params.id;
+    const id = page.params.id;
     try {
       await apiDeleteSection(id, sectionId);
       await fetchCourse();
@@ -185,7 +184,7 @@
       editLessonLoading = false;
       return;
     }
-    const id = get(page).params.id;
+    const id = page.params.id;
     try {
       await updateLesson(id, editLessonSectionId, editLessonId, {
         title: e.detail.title,
@@ -535,7 +534,7 @@
       return;
     }
     addLessonLoading = true;
-    const id = get(page).params.id;
+    const id = page.params.id;
     try {
       await createLesson(id, addLessonSectionId, {
         title: e.detail.title,
