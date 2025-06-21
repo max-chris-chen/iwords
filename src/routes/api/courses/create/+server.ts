@@ -2,7 +2,6 @@ import { CourseStatus, type Course } from "$lib/models/course";
 import { getDb } from "$lib/mongodb";
 import { getAuthenticatedUserId } from "$lib/server/auth";
 import type { RequestHandler } from "@sveltejs/kit";
-import { ObjectId } from "mongodb";
 
 export const POST: RequestHandler = async ({ request, locals }) => {
   try {

@@ -3,7 +3,6 @@
 
   let {
     sentence,
-    sentenceIdx,
     dictationInputs,
     dictationResult,
     inputRefs,
@@ -12,7 +11,6 @@
     onPlayKeySound,
   } = $props<{
     sentence: LessonSentence;
-    sentenceIdx: number;
     dictationInputs: string[];
     dictationResult: boolean | null;
     inputRefs: (HTMLInputElement | null)[];

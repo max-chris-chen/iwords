@@ -91,7 +91,7 @@
             type="text"
             id="title"
             bind:value={title}
-            placeholder="例如：Svelte 入门教程"
+            placeholder="例如：新概念英语"
             required
           />
         </div>

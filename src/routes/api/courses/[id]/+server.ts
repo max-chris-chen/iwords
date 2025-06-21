@@ -260,10 +260,7 @@ export const PUT: RequestHandler = async ({ params, locals, request }) => {
         .updateOne({ _id: courseId, user: userId }, { $set: update });
 
       if (result.modifiedCount === 1) {
-        const updatedCourse = await db
-          .collection("courses")
-          .findOne({ _id: courseId });
-        return new Response(JSON.stringify(update), {
+        return new Response(JSON.stringify({ success: true }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });

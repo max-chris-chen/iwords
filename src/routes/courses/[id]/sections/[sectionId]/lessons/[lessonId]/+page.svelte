@@ -1,10 +1,7 @@
 <script lang="ts">
-  import { page } from "$app/stores";
-  import type { Lesson, LessonSentence } from "$lib/models/course";
   import { onDestroy, onMount } from "svelte";
   import AddLessonModal from "$lib/modals/AddLessonModal.svelte";
   import { updateLesson } from "$lib/api/lesson";
-  import { goto } from "$app/navigation";
   import { fetchRecordings } from "$lib/api/recording";
   import type { UserRecording } from "$lib/models/recording";
   export let data;
@@ -23,9 +20,7 @@
   let mediaRecorder: MediaRecorder | null = null;
   let audioChunks: Blob[] = [];
   let recordingTime = 0;
-  let recordingTimer: any = null;
-  let isSubmitting = false;
-  let submissionStatus: "success" | "error" | null = null;
+  let recordingTimer: number | null = null;
   let userRecordings: UserRecording[] = [];
   let isPreparingToRecord = false;
   let audioContext: AudioContext | null = null;
@@ -75,16 +70,26 @@
     showEditLessonModal = false;
   }
 
+  interface CustomWindow extends Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+
   function initAudioContext() {
     if (typeof window !== "undefined" && !audioContext) {
       try {
-        audioContext = new (window.AudioContext ||
-          (window as any).webkitAudioContext)();
-        // Attempt to resume context immediately, as this is happening inside a user interaction handler
-        if (audioContext.state === "suspended") {
-          audioContext.resume().then(() => {
-            console.log("AudioContext resumed on mode switch.");
-          });
+        const CustomAudioContext =
+          (window as CustomWindow).AudioContext ||
+          (window as CustomWindow).webkitAudioContext;
+        if (CustomAudioContext) {
+          audioContext = new CustomAudioContext();
+          // Attempt to resume context immediately, as this is happening inside a user interaction handler
+          if (audioContext.state === "suspended") {
+            audioContext.resume().then(() => {
+              console.log("AudioContext resumed on mode switch.");
+            });
+          }
+        } else {
+          console.error("Web Audio API is not supported in this browser.");
         }
       } catch (e) {
         console.error("Web Audio API is not supported in this browser.", e);
@@ -169,7 +174,7 @@
     }
   }
 
-  function handleWordInput(event: Event, index: number) {
+  function handleWordInput() {
     wordCorrectness = Array(words.length).fill(null);
     writingFeedback = "";
   }
@@ -397,7 +402,6 @@
       alert("没有可提交的录音。");
       return false;
     }
-    isSubmitting = true;
     try {
       const formData = new FormData();
       formData.append("audio", recordedAudioBlob, "recording.webm");
@@ -437,8 +441,6 @@
       console.error("Submission error:", error);
       alert(`提交出错: ${error instanceof Error ? error.message : "未知错误"}`);
       return false;
-    } finally {
-      isSubmitting = false;
     }
   }
 
@@ -637,7 +639,7 @@
               <input
                 type="text"
                 bind:value={userInputs[i]}
-                on:input={(e) => handleWordInput(e, i)}
+                on:input={() => handleWordInput()}
                 on:keydown={(e) => handleKeyDown(e, i)}
                 class="word-input"
                 class:incorrect={wordCorrectness[i] === false}

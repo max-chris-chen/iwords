@@ -9,7 +9,6 @@
   import {
     createLesson,
     updateLesson,
-    deleteLesson as apiDeleteLesson,
     fetchLessons,
   } from "$lib/api/lesson";
   import {
@@ -211,78 +210,6 @@
     }
   }
 
-  async function deleteLesson(sectionId: string, lessonId: string) {
-    actionLoading = true;
-    const id = get(page).params.id;
-    try {
-      if (!confirm("确定要删除该 Lesson 吗？")) return;
-      await apiDeleteLesson(id, sectionId, lessonId);
-      await fetchCourse();
-    } catch (err: unknown) {
-      const error = err as ApiError;
-      console.error(error.message || "删除失败");
-    } finally {
-      actionLoading = false;
-    }
-  }
-
-  function startEditLesson(
-    sectionId: string,
-    lesson: Lesson,
-    sectionTitle: string,
-  ) {
-    editLessonSectionId = sectionId;
-    editLessonId = lesson._id || null;
-    editLessonTitle = lesson.title;
-    editLessonContent = lesson.content;
-    editLessonSectionTitle = sectionTitle;
-    editLessonError = "";
-    showEditLessonModal = true;
-  }
-
-  function closeEditLessonModal() {
-    showEditLessonModal = false;
-    editLessonSectionId = null;
-    editLessonId = null;
-    editLessonTitle = "";
-    editLessonContent = "";
-    editLessonSectionTitle = "";
-    editLessonError = "";
-  }
-  async function handleAddLesson() {
-    addLessonError = "";
-    addLessonLoading = true;
-    if (!addLessonSectionId) {
-      addLessonError = "Section not found.";
-      addLessonLoading = false;
-      return;
-    }
-    if (!addLessonTitle.trim()) {
-      addLessonError = "Lesson title required";
-      addLessonLoading = false;
-      return;
-    }
-    const id = get(page).params.id;
-    try {
-      await createLesson(id, addLessonSectionId, {
-        title: addLessonTitle,
-        content: addLessonContent,
-        sectionId: addLessonSectionId,
-      });
-      showAddLessonModal = false;
-      addLessonSectionId = null;
-      addLessonSectionTitle = "";
-      addLessonTitle = "";
-      addLessonContent = "";
-      await fetchCourse();
-    } catch (err: unknown) {
-      const error = err as ApiError;
-      addLessonError = error.message || "创建失败";
-    } finally {
-      addLessonLoading = false;
-    }
-  }
-
   function openAddLessonModal(sectionId: string, sectionTitle: string) {
     showAddLessonModal = true;
     addLessonSectionId = sectionId;
@@ -291,43 +218,6 @@
     addLessonContent = "";
     addLessonError = "";
   }
-
-  function closeAddLessonModal() {
-    showAddLessonModal = false;
-    addLessonSectionId = null;
-    addLessonSectionTitle = "";
-    addLessonTitle = "";
-    addLessonContent = "";
-    addLessonError = "";
-  }
-
-  function handleAddLessonModalSave(e: CustomEvent) {
-    addLessonError = "";
-    addLessonLoading = true;
-    if (!addLessonSectionId) {
-      addLessonError = "Section not found.";
-      addLessonLoading = false;
-      return;
-    }
-    addLessonTitle = e.detail.title;
-    addLessonContent = e.detail.content;
-    handleAddLesson();
-  }
-
-  function startFirstLesson() {
-    if (course?.sections?.[0]?.lessons?.[0]) {
-      const firstSection = course.sections[0];
-      const firstLesson = firstSection.lessons[0];
-      if (course?._id && firstSection?._id && firstLesson?._id) {
-        goto(
-          `/courses/${course._id}/sections/${firstSection._id}/lessons/${firstLesson._id}`,
-        );
-      }
-    }
-  }
-
-  // Helper no-op functions for modal props
-  const noop = () => {};
 </script>
 
 {#if loading}
@@ -654,6 +544,7 @@
       await createLesson(id, addLessonSectionId, {
         title: e.detail.title,
         content: e.detail.content,
+        sectionId: addLessonSectionId,
       });
       showAddLessonModal = false;
       await fetchCourse();

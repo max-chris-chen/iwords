@@ -1,4 +1,4 @@
-import type { ObjectId } from "mongodb";
+import type {} from "mongodb";
 
 export interface UserRecording {
   _id?: string;
