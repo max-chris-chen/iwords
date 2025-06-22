@@ -1,6 +1,4 @@
-import {
-  env
-} from "$env/dynamic/private";
+import { env } from "$env/dynamic/private";
 import crypto from "crypto";
 import fs from "fs-extra";
 import path from "path";
