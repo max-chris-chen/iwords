@@ -1,4 +1,4 @@
-import { AUDIO_DIR } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "@sveltejs/kit";
 import fs from "fs";
 import { Readable } from "node:stream";
@@ -9,7 +9,7 @@ export const GET: RequestHandler = async ({ params }) => {
   if (!filename || filename.includes("..") || filename.includes("/")) {
     return new Response("Invalid filename", { status: 400 });
   }
-  const filePath = path.join(AUDIO_DIR, filename);
+  const filePath = path.join(env.AUDIO_DIR, filename);
   try {
     await fs.promises.access(filePath, fs.constants.R_OK);
     const stat = await fs.promises.stat(filePath);

@@ -1,6 +1,6 @@
-import { MONGODB_URI } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 import { Db, MongoClient } from "mongodb";
-
+const MONGODB_URI = env.MONGODB_URI;
 if (!MONGODB_URI) {
   throw new Error(
     "Please define the MONGODB_URI environment variable inside .env.local",

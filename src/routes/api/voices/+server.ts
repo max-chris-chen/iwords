@@ -1,7 +1,8 @@
 import { json } from "@sveltejs/kit";
+import { env } from "$env/dynamic/private";
 
 export async function GET() {
-  const API_KEY = process.env.SPEECHIFY_API_KEY;
+  const API_KEY = env.SPEECHIFY_API_KEY;
   if (!API_KEY)
     return json({ error: "SPEECHIFY_API_KEY not set" }, { status: 500 });
 

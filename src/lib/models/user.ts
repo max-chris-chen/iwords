@@ -1,6 +1,7 @@
 export interface User {
   _id?: string; // Changed to string to satisfy linter and improve type safety
   username: string;
+  password?: string;
   createdAt?: Date;
   email?: string;
   phone?: string;

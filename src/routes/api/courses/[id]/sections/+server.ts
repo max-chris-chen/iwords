@@ -1,3 +1,4 @@
+import { getAuthenticatedUserId } from "$lib/server/auth";
 import { getDb } from "$lib/mongodb";
 import type { RequestHandler } from "@sveltejs/kit";
 import { ObjectId } from "mongodb";
@@ -5,9 +6,7 @@ import { ObjectId } from "mongodb";
 // POST /api/courses/[id]/sections
 export const POST: RequestHandler = async ({ params, locals, request }) => {
   try {
-    if (!locals.user?._id) {
-      return new Response("Unauthorized", { status: 401 });
-    }
+    const userId = getAuthenticatedUserId(locals);
     const db = await getDb();
     let courseId: ObjectId;
     try {
@@ -17,7 +16,7 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
     }
     const course = await db
       .collection("courses")
-      .findOne({ _id: courseId, user: locals.user._id });
+      .findOne({ _id: courseId, user: userId });
     if (!course) {
       return new Response("Not found", { status: 404 });
     }

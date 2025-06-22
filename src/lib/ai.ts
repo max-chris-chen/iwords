@@ -1,8 +1,6 @@
 import {
-  AUDIO_DIR,
-  DEEPSEEK_API_KEY,
-  SPEECHIFY_API_KEY,
-} from "$env/static/private";
+  env
+} from "$env/dynamic/private";
 import crypto from "crypto";
 import fs from "fs-extra";
 import path from "path";
@@ -13,12 +11,12 @@ import path from "path";
  * @returns Promise<string[]> 句子数组
  */
 export async function splitTextToSentences(text: string): Promise<string[]> {
-  if (!DEEPSEEK_API_KEY) throw new Error("Missing DEEPSEEK_API_KEY");
+  if (!env.DEEPSEEK_API_KEY) throw new Error("Missing DEEPSEEK_API_KEY");
   const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+      Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
     },
     body: JSON.stringify({
       model: "deepseek-chat",
@@ -48,7 +46,7 @@ export async function splitTextToSentences(text: string): Promise<string[]> {
 }
 
 // 音频文件存储目录，可通过环境变量 AUDIO_DIR 配置，默认 static/audio
-const AUDIO_DIR_PATH = AUDIO_DIR || path.resolve("static/audio");
+const AUDIO_DIR_PATH = env.AUDIO_DIR || path.resolve("static/audio");
 
 /**
  * 调用 Speechify API，将文本转为语音音频数据
@@ -60,7 +58,7 @@ export async function textToSpeech(
   text: string,
   options?: { voice?: string; output_format?: string },
 ): Promise<{ audioUrl: string; audio_format: string; speech_marks?: unknown }> {
-  const API_KEY = SPEECHIFY_API_KEY;
+  const API_KEY = env.SPEECHIFY_API_KEY;
   if (!API_KEY) throw new Error("SPEECHIFY_API_KEY not set");
   const voice = options?.voice || "kristy";
   const output_format = options?.output_format || "mp3";

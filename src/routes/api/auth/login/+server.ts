@@ -3,7 +3,7 @@ import { connectToDatabase } from "$lib/mongodb";
 import { json } from "@sveltejs/kit";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { JWT_SECRET, NODE_ENV } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 
 export async function POST({ request, cookies }) {
   const { username, password } = await request.json();
@@ -33,13 +33,13 @@ export async function POST({ request, cookies }) {
         userId: user._id,
         username: user.username,
       },
-      JWT_SECRET,
+      env.JWT_SECRET,
       { expiresIn: "7d" },
     );
     cookies.set("token", token, {
       path: "/",
       httpOnly: true,
-      secure: NODE_ENV === "production",
+      secure: env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60,
     });
