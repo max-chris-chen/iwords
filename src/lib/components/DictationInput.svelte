@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { preventDefault, handlers } from "svelte/legacy";
+
   import type { LessonSentence } from "$lib/models/course";
 
   let {
@@ -55,7 +57,7 @@
   <form
     class="dictation-form"
     autocomplete="off"
-    on:submit|preventDefault={onCheck}
+    onsubmit={preventDefault(onCheck)}
   >
     {#each sentence.caption.chunks as w, wi}
       <input
@@ -66,10 +68,10 @@
         style="width: {sentence.text.slice(w.start, w.end).length +
           2}ch; border: none; border-bottom: 2px solid #888; background: none; text-align: center; margin: 0 2px; font-size: 1.1em; letter-spacing: 2px; outline: none; padding: 2px 0;"
         autocomplete="off"
-        on:keydown={(e) => handleKeydown(e, wi)}
-        on:input={onPlayKeySound}
-        on:input={(e) =>
-          onInputChange(wi, (e.target as HTMLInputElement).value)}
+        onkeydown={(e) => handleKeydown(e, wi)}
+        oninput={handlers(onPlayKeySound, (e) =>
+          onInputChange(wi, (e.target as HTMLInputElement).value),
+        )}
       />
       {#if wi < sentence.caption.chunks.length - 1}
         {#if sentence.text.slice(sentence.caption.chunks[wi].end, sentence.caption.chunks[wi + 1].start)}
@@ -108,10 +110,11 @@
     bind:value={dictationInputs[0]}
     placeholder="请听写..."
     style="width:80%"
-    on:input={onPlayKeySound}
-    on:input={(e) => onInputChange(0, (e.target as HTMLInputElement).value)}
+    oninput={handlers(onPlayKeySound, (e) =>
+      onInputChange(0, (e.target as HTMLInputElement).value),
+    )}
   />
-  <button on:click={onCheck} disabled={dictationResult !== null}>提交</button>
+  <button onclick={onCheck} disabled={dictationResult !== null}>提交</button>
   {#if dictationResult !== null}
     {#if dictationResult}
       <span style="color:green">✔ 正确</span>

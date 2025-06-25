@@ -150,14 +150,14 @@
         style="width:48px;height:48px;border-radius:50%"
       />
     {/if}
-    <button on:click={logout}>登出</button>
+    <button onclick={logout}>登出</button>
   </div>
   <div>
     <textarea bind:value={text} rows="4" cols="50" placeholder="请输入英文..."
     ></textarea>
     <div style="margin: 10px 0;">
       <label for="speed">播放速度: </label>
-      <select id="speed" bind:value={speed} on:change={updatePlaybackSpeed}>
+      <select id="speed" bind:value={speed} onchange={updatePlaybackSpeed}>
         <option value={0.5}>0.5x (慢)</option>
         <option value={0.75}>0.75x</option>
         <option value={1.0}>1.0x (正常)</option>
@@ -166,10 +166,9 @@
         <option value={2.0}>2.0x (很快)</option>
       </select>
     </div>
-    <button on:click={synthesize} disabled={!text.trim() || playing}
-      >合成</button
+    <button onclick={synthesize} disabled={!text.trim() || playing}>合成</button
     >
-    <button on:click={play} disabled={!audioData || playing}>播放</button>
+    <button onclick={play} disabled={!audioData || playing}>播放</button>
   </div>
   {#if text}
     <div style="margin-top:1em;font-size:1.2em">

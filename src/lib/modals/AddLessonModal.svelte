@@ -1,4 +1,11 @@
 <script lang="ts">
+  import {
+    createBubbler,
+    stopPropagation,
+    preventDefault,
+  } from "svelte/legacy";
+
+  const bubble = createBubbler();
   import { createEventDispatcher } from "svelte";
 
   let {
@@ -53,12 +60,12 @@
   }
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-  <div class="modal-backdrop" on:click={handleClose}>
-    <div class="modal-content" on:click|stopPropagation>
-      <button class="modal-close-btn" on:click={handleClose}>
+  <div class="modal-backdrop" onclick={handleClose}>
+    <div class="modal-content" onclick={stopPropagation(bubble("click"))}>
+      <button class="modal-close-btn" onclick={handleClose}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -87,7 +94,7 @@
         {/if}
       </div>
 
-      <form on:submit|preventDefault={handleSave}>
+      <form onsubmit={preventDefault(handleSave)}>
         <div class="form-group">
           <label for="lesson-title">Lesson 标题</label>
           <input
@@ -110,7 +117,7 @@
             aria-label="Lesson content"
             maxlength="10000"
             rows="8"
-          />
+          ></textarea>
           <div class="char-counter">{localContent.length}/10000</div>
         </div>
 
@@ -119,7 +126,7 @@
         {/if}
 
         <div class="form-actions">
-          <button type="button" class="btn-secondary" on:click={handleClose}
+          <button type="button" class="btn-secondary" onclick={handleClose}
             >取消</button
           >
           <button type="submit" class="btn-primary" disabled={loading}>

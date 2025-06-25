@@ -43,7 +43,7 @@
           {/each}
           <button
             class="eye-btn"
-            on:click={() => {
+            onclick={() => {
               sentence._showText = true;
               updateLessonSentences();
             }}
@@ -55,7 +55,7 @@
           {/each}
           <button
             class="eye-btn"
-            on:click={() => {
+            onclick={() => {
               sentence._showText = false;
               updateLessonSentences();
             }}
@@ -66,7 +66,7 @@
         {"*".repeat(sentence.text.length)}
         <button
           class="eye-btn"
-          on:click={() => {
+          onclick={() => {
             sentence._showText = true;
             updateLessonSentences();
           }}
@@ -76,7 +76,7 @@
         {sentence.text}
         <button
           class="eye-btn"
-          on:click={() => {
+          onclick={() => {
             sentence._showText = false;
             updateLessonSentences();
           }}
@@ -107,7 +107,7 @@
     {/if}
   </div>
   {#if sentence.audioUrl}
-    <button on:click={() => onPlay(idx)} disabled={playingIdx === idx}>
+    <button onclick={() => onPlay(idx)} disabled={playingIdx === idx}>
       {playingIdx === idx ? "播放中..." : "播放"}
     </button>
   {/if}

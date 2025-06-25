@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { stopPropagation } from "svelte/legacy";
+
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import AddLessonModal from "$lib/modals/AddLessonModal.svelte";
@@ -325,7 +327,7 @@
       <div class="sections-container">
         <div class="sections-header">
           <h2>课程章节</h2>
-          <button class="btn-add-section" on:click={openSectionModal}>
+          <button class="btn-add-section" onclick={openSectionModal}>
             <svg
               width="16"
               height="16"
@@ -361,7 +363,7 @@
                     <button
                       class="btn-icon"
                       aria-label="Add lesson"
-                      on:click={() =>
+                      onclick={() =>
                         section._id &&
                         openAddLessonModal(section._id, section.title)}
                     >
@@ -382,7 +384,7 @@
                     <button
                       class="btn-icon"
                       aria-label="Edit section"
-                      on:click={() => openEditSectionModal(section)}
+                      onclick={() => openEditSectionModal(section)}
                     >
                       <svg
                         width="20"
@@ -403,7 +405,7 @@
                     <button
                       class="btn-icon"
                       aria-label="Delete section"
-                      on:click={() => section._id && deleteSection(section._id)}
+                      onclick={() => section._id && deleteSection(section._id)}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -470,13 +472,13 @@
                           {/if}
                           <button
                             class="btn-start-lesson"
-                            on:click|stopPropagation={() => {
+                            onclick={stopPropagation(() => {
                               if (course?._id && section?._id && lesson?._id) {
                                 goto(
                                   `/courses/${course._id}/sections/${section._id}/lessons/${lesson._id}`,
                                 );
                               }
-                            }}>开始学习</button
+                            })}>开始学习</button
                           >
                         </div>
                       </li>
@@ -491,7 +493,7 @@
         {:else}
           <div class="no-sections-card">
             <p>本课程还没有任何章节。</p>
-            <button class="btn btn-primary" on:click={openSectionModal}
+            <button class="btn btn-primary" onclick={openSectionModal}
               >创建第一个章节</button
             >
           </div>

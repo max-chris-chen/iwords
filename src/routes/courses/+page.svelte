@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { stopPropagation } from "svelte/legacy";
+
   import { goto } from "$app/navigation";
   import CourseFormModal from "$lib/modals/CourseFormModal.svelte";
   import { onMount } from "svelte";
@@ -88,7 +90,7 @@
       <p>管理和学习您的所有课程</p>
     </div>
     <div class="header-right">
-      <button class="btn-primary" on:click={openAddModal}>
+      <button class="btn-primary" onclick={openAddModal}>
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
@@ -141,7 +143,7 @@
       {#each courses as course (course._id)}
         <div
           class="my-course-card"
-          on:click={() => goto(`/courses/${course._id}`)}
+          onclick={() => goto(`/courses/${course._id}`)}
         >
           <div class="course-content">
             <div class="course-header">
@@ -200,7 +202,7 @@
               <div class="course-actions-bottom">
                 <button
                   class="btn-primary"
-                  on:click|stopPropagation={() => openEditModal(course)}
+                  onclick={stopPropagation(() => openEditModal(course))}
                   >编辑</button
                 >
               </div>

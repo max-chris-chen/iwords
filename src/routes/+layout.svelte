@@ -2,6 +2,11 @@
   import { page } from "$app/state";
   import { invalidateAll, goto } from "$app/navigation";
   import "../app.css";
+  interface Props {
+    children?: import("svelte").Snippet;
+  }
+
+  let { children }: Props = $props();
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -66,7 +71,7 @@
                 <a href="#" class="dropdown-item">个人设置</a>
                 <a href="#" class="dropdown-item">学习统计</a>
                 <div class="dropdown-divider"></div>
-                <button on:click={logout} class="dropdown-item logout"
+                <button onclick={logout} class="dropdown-item logout"
                   >退出登录</button
                 >
               </div>
@@ -83,7 +88,7 @@
   class:no-nav={page.url.pathname === "/login" ||
     page.url.pathname === "/register"}
 >
-  <slot />
+  {@render children?.()}
 </main>
 
 <style>

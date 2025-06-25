@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { preventDefault } from "svelte/legacy";
+
   import { onMount } from "svelte";
 
   let email = $state("");
@@ -167,7 +169,7 @@
     </div>
 
     <div class="card-content">
-      <form on:submit|preventDefault={handleSubmit}>
+      <form onsubmit={preventDefault(handleSubmit)}>
         {#if !isLoginMode}
           <div class="form-group">
             <label class="form-label" for="name">姓名</label>
@@ -253,7 +255,7 @@
             <button
               type="button"
               class="password-toggle"
-              on:click={() => togglePassword("password")}
+              onclick={() => togglePassword("password")}
             >
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {#if passwordFieldType === "password"}
@@ -310,7 +312,7 @@
               <button
                 type="button"
                 class="password-toggle"
-                on:click={() => togglePassword("confirmPassword")}
+                onclick={() => togglePassword("confirmPassword")}
               >
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {#if confirmPasswordFieldType === "password"}
@@ -385,7 +387,7 @@
             已有账户？
           {/if}
         </span>
-        <button type="button" on:click={toggleAuthMode}>
+        <button type="button" onclick={toggleAuthMode}>
           {#if isLoginMode}
             立即注册
           {:else}

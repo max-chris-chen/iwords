@@ -1,63 +1,73 @@
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import { onDestroy, onMount } from "svelte";
   import AddLessonModal from "$lib/modals/AddLessonModal.svelte";
   import { updateLesson } from "$lib/api/lesson";
   import { fetchRecordings } from "$lib/api/recording";
   import type { UserRecording } from "$lib/models/recording";
-  export let data;
+  let { data } = $props();
 
-  let { lesson, courseId, sectionId } = data;
+  let { lesson, courseId, sectionId } = $state(data);
 
-  let currentSentenceIndex = 0;
-  let learningMode = "listening"; // listening, reading, writing
-  let showSentence = false;
-  let isPlaying = false;
-  let highlightedWordIndex = -1;
+  let currentSentenceIndex = $state(0);
+  let learningMode = $state("listening"); // listening, reading, writing
+  let showSentence = $state(false);
+  let isPlaying = $state(false);
+  let highlightedWordIndex = $state(-1);
 
-  let isRecording = false;
-  let recordedAudioUrl: string | null = null;
+  let isRecording = $state(false);
+  let recordedAudioUrl: string | null = $state(null);
   let recordedAudioBlob: Blob | null = null;
   let mediaRecorder: MediaRecorder | null = null;
   let audioChunks: Blob[] = [];
-  let recordingTime = 0;
+  let recordingTime = $state(0);
   let recordingTimer: number | null = null;
-  let userRecordings: UserRecording[] = [];
-  let isPreparingToRecord = false;
+  let userRecordings: UserRecording[] = $state([]);
+  let isPreparingToRecord = $state(false);
   let audioContext: AudioContext | null = null;
   // UI state for edit lesson modal
-  let showEditLessonModal = false;
-  let editLessonTitle = "";
-  let editLessonContent = "";
-  let editLessonError = "";
-  let editLessonLoading = false;
+  let showEditLessonModal = $state(false);
+  let editLessonTitle = $state("");
+  let editLessonContent = $state("");
+  let editLessonError = $state("");
+  let editLessonLoading = $state(false);
 
-  let userInputs: string[] = [];
-  let writingFeedback = "";
-  let wordCorrectness: (boolean | null)[] = [];
+  let userInputs: string[] = $state([]);
+  let writingFeedback = $state("");
+  let wordCorrectness: (boolean | null)[] = $state([]);
 
-  $: allWordsCorrect =
-    wordCorrectness.length > 0 && wordCorrectness.every((c) => c === true);
-  $: someWordsIncorrect =
-    wordCorrectness.length > 0 && wordCorrectness.some((c) => c === false);
+  let allWordsCorrect = $derived(
+    wordCorrectness.length > 0 && wordCorrectness.every((c) => c === true),
+  );
+  let someWordsIncorrect = $derived(
+    wordCorrectness.length > 0 && wordCorrectness.some((c) => c === false),
+  );
 
-  $: currentSentenceObject = lesson?.sentences?.[currentSentenceIndex];
-  $: currentSentenceId =
+  let currentSentenceObject = $derived(
+    lesson?.sentences?.[currentSentenceIndex],
+  );
+  let currentSentenceId = $derived(
     typeof currentSentenceObject === "string"
       ? null
-      : currentSentenceObject?._id;
-  $: currentSentenceRecordings = userRecordings.filter(
-    (r) => r.sentenceId === currentSentenceId,
+      : currentSentenceObject?._id,
   );
-  $: currentSentenceText =
+  let currentSentenceRecordings = $derived(
+    userRecordings.filter((r) => r.sentenceId === currentSentenceId),
+  );
+  let currentSentenceText = $derived(
     (typeof currentSentenceObject === "string"
       ? currentSentenceObject
-      : currentSentenceObject?.text) || "";
-  $: words = currentSentenceText.split(" ");
-  $: maskedSentence = currentSentenceText.replace(/[a-zA-Z]/g, "*");
-  $: if (words.length > 0) {
-    userInputs = Array(words.length).fill("");
-    wordCorrectness = Array(words.length).fill(null);
-  }
+      : currentSentenceObject?.text) || "",
+  );
+  let words = $derived(currentSentenceText.split(" "));
+  let maskedSentence = $derived(currentSentenceText.replace(/[a-zA-Z]/g, "*"));
+  run(() => {
+    if (words.length > 0) {
+      userInputs = Array(words.length).fill("");
+      wordCorrectness = Array(words.length).fill(null);
+    }
+  });
 
   function openEditLessonModal() {
     showEditLessonModal = true;
@@ -523,7 +533,7 @@
         </div>
       </div>
       <div class="mt-4 flex justify-end">
-        <button class="btn" on:click={openEditLessonModal}>
+        <button class="btn" onclick={openEditLessonModal}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -548,21 +558,21 @@
       <div class="mode-switcher">
         <button
           class:active={learningMode === "listening"}
-          on:click={() => {
+          onclick={() => {
             learningMode = "listening";
             clearWritingState();
           }}>听力模式</button
         >
         <button
           class:active={learningMode === "reading"}
-          on:click={() => {
+          onclick={() => {
             learningMode = "reading";
             clearWritingState();
           }}>跟读模式</button
         >
         <button
           class:active={learningMode === "writing"}
-          on:click={() => {
+          onclick={() => {
             learningMode = "writing";
             clearWritingState();
             initAudioContext();
@@ -573,7 +583,7 @@
 
     <div class="card">
       <div class="playback-controls">
-        <button class="btn-icon" on:click={playCurrentSentence}>
+        <button class="btn-icon" onclick={playCurrentSentence}>
           {#if isPlaying}
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -639,8 +649,8 @@
               <input
                 type="text"
                 bind:value={userInputs[i]}
-                on:input={() => handleWordInput()}
-                on:keydown={(e) => handleKeyDown(e, i)}
+                oninput={() => handleWordInput()}
+                onkeydown={(e) => handleKeyDown(e, i)}
                 class="word-input"
                 class:incorrect={wordCorrectness[i] === false}
                 style="width: {word.length * 1.2 + 2}ch;"
@@ -655,12 +665,12 @@
           <div class="writing-actions">
             <button
               class="btn btn-primary"
-              on:click={checkAnswer}
+              onclick={checkAnswer}
               disabled={userInputs.join("").trim() === ""}>检查</button
             >
             <button
               class="btn-icon btn-reveal"
-              on:click={() => (showSentence = !showSentence)}
+              onclick={() => (showSentence = !showSentence)}
             >
               {#if showSentence}
                 <svg
@@ -730,7 +740,7 @@
           {#if !isRecording}
             <button
               class="btn btn-primary"
-              on:click={startRecording}
+              onclick={startRecording}
               disabled={isPreparingToRecord}
             >
               <svg
@@ -762,7 +772,7 @@
           {:else}
             <button
               class="btn btn-danger"
-              on:click={stopRecording}
+              onclick={stopRecording}
               disabled={!isRecording}
             >
               <svg
@@ -812,7 +822,7 @@
                     </span>
                     <button
                       class="btn-icon btn-delete"
-                      on:click={() =>
+                      onclick={() =>
                         recording._id &&
                         deleteRecording(recording._id.toString())}
                     >
@@ -841,7 +851,7 @@
                   <audio
                     controls
                     src={`/api/audio/${recording.recordingUrl.replace(/\\/g, "/")}`}
-                  />
+                  ></audio>
                 </li>
               {/each}
             </ul>
@@ -852,7 +862,7 @@
       {#if learningMode !== "reading" && learningMode !== "writing"}
         <button
           class="btn-icon btn-reveal"
-          on:click={() => (showSentence = !showSentence)}
+          onclick={() => (showSentence = !showSentence)}
         >
           {#if showSentence}
             <svg
@@ -903,7 +913,7 @@
       <div class="navigation-buttons">
         <button
           class="btn"
-          on:click={prevSentence}
+          onclick={prevSentence}
           disabled={currentSentenceIndex === 0}
         >
           <svg
@@ -923,7 +933,7 @@
         </button>
         <button
           class="btn btn-primary"
-          on:click={nextSentence}
+          onclick={nextSentence}
           disabled={lesson &&
             currentSentenceIndex === (lesson.sentences.length || 0) - 1}
         >
