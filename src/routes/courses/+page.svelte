@@ -143,7 +143,10 @@
       {#each courses as course (course._id)}
         <div
           class="my-course-card"
+          role="link"
+          tabindex="0"
           onclick={() => goto(`/courses/${course._id}`)}
+          onkeydown={(e) => e.key === "Enter" && goto(`/courses/${course._id}`)}
         >
           <div class="course-content">
             <div class="course-header">
@@ -214,7 +217,7 @@
   {/if}
 
   <div class="pagination">
-    <button class="page-btn" disabled>
+    <button class="page-btn" disabled aria-label="上一页">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
         ><path
           stroke-linecap="round"
@@ -229,7 +232,7 @@
     <button class="page-btn">3</button>
     <span class="page-dots">...</span>
     <button class="page-btn">10</button>
-    <button class="page-btn">
+    <button class="page-btn" aria-label="下一页">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"
         ><path
           stroke-linecap="round"
@@ -297,22 +300,6 @@
   .btn-primary svg {
     width: 1.25rem;
     height: 1.25rem;
-  }
-
-  .btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    background-color: #ffffff;
-    color: #374151;
-    font-weight: 600;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid #d1d5db;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-  .btn-secondary:hover {
-    background-color: #f9fafb;
   }
 
   .filters {
