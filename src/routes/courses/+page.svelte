@@ -146,7 +146,7 @@
           role="link"
           tabindex="0"
           onclick={() => goto(`/courses/${course._id}`)}
-          onkeydown={(e) => e.key === "Enter" && goto(`/courses/${course._id}`)}
+          onkeydown={(e) => e.key === 'Enter' && goto(`/courses/${course._id}`)}
         >
           <div class="course-content">
             <div class="course-header">
@@ -301,6 +301,7 @@
     width: 1.25rem;
     height: 1.25rem;
   }
+
 
   .filters {
     display: flex;
