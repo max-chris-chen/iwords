@@ -39,11 +39,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     // Security: Validate file type and size
     if (audioFile.type !== "audio/webm") {
-      return json({ message: "Invalid file type. Only audio/webm is accepted." }, { status: 400 });
+      return json(
+        { message: "Invalid file type. Only audio/webm is accepted." },
+        { status: 400 },
+      );
     }
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
     if (audioFile.size > MAX_FILE_SIZE) {
-      return json({ message: `File size exceeds the limit of ${MAX_FILE_SIZE / 1024 / 1024} MB.` }, { status: 400 });
+      return json(
+        {
+          message: `File size exceeds the limit of ${MAX_FILE_SIZE / 1024 / 1024} MB.`,
+        },
+        { status: 400 },
+      );
     }
 
     const audioBuffer = Buffer.from(await audioFile.arrayBuffer());

@@ -24,7 +24,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ["HS256"] });
+      const decoded = jwt.verify(token, env.JWT_SECRET, {
+        algorithms: ["HS256"],
+      });
       if (typeof decoded === "object" && decoded !== null) {
         event.locals.user = decoded as App.Locals["user"];
       } else {
@@ -39,7 +41,9 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (!event.locals.user && !PUBLIC_PATHS.includes(event.url.pathname)) {
     // For API endpoints that are not public, return a 401 Unauthorized error
     if (event.url.pathname.startsWith("/api")) {
-      return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
+      return new Response(JSON.stringify({ message: "Unauthorized" }), {
+        status: 401,
+      });
     }
     // For page routes, redirect to login
     throw redirect(303, "/login");
