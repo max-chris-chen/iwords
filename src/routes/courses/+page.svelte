@@ -1,35 +1,14 @@
 <script lang="ts">
-  import { stopPropagation } from "svelte/legacy";
-
   import { goto } from "$app/navigation";
   import CourseFormModal from "$lib/modals/CourseFormModal.svelte";
-  import { onMount } from "svelte";
   import type { Course } from "$lib/models/course";
-
-  let courses = $state<Course[]>([]);
-  let loading = $state(true);
-  let error = $state("");
+  let { data }: { data: { courses: Course[] } } = $props();
 
   let showModal = $state(false);
   let modalLoading = $state(false);
   let modalError = $state("");
   let editMode = $state(false);
   let editCourseData = $state<Course | null>(null);
-
-  onMount(async () => {
-    loading = true;
-    error = "";
-    try {
-      const res = await fetch("/api/courses/my");
-      if (!res.ok) throw new Error(await res.text());
-      courses = await res.json();
-    } catch (e: unknown) {
-      const err = e as Error;
-      error = err.message || "Failed to load courses";
-    } finally {
-      loading = false;
-    }
-  });
 
   function openAddModal() {
     showModal = true;
@@ -65,18 +44,20 @@
       const savedCourse = await res.json();
 
       if (editMode) {
-        const index = courses.findIndex((c) => c._id === editCourseData?._id);
+        const index = data.courses.findIndex(
+          (c) => c._id === editCourseData?._id,
+        );
         if (index !== -1) {
-          courses[index] = { ...courses[index], ...savedCourse };
+          data.courses[index] = { ...data.courses[index], ...savedCourse };
         }
       } else {
-        courses.unshift(savedCourse);
+        data.courses.unshift(savedCourse);
       }
 
       showModal = false;
     } catch (e: unknown) {
       const err = e as Error;
-      modalError = err.message || "Failed to save course";
+      modalError = err.message || "保存课程失败";
     } finally {
       modalLoading = false;
     }
@@ -132,21 +113,19 @@
     </div>
   </div>
 
-  {#if loading}
-    <p>加载中...</p>
-  {:else if error}
-    <div style="color:red">{error}</div>
-  {:else if courses.length === 0}
-    <p>没有找到课程。</p>
+  {#if data.courses.length === 0}
+    <div class="empty-state">
+      <p>没有找到课程。</p>
+    </div>
   {:else}
     <div class="courses-grid">
-      {#each courses as course (course._id)}
+      {#each data.courses as course (course._id)}
         <div
           class="my-course-card"
           role="link"
           tabindex="0"
           onclick={() => goto(`/courses/${course._id}`)}
-          onkeydown={(e) => e.key === 'Enter' && goto(`/courses/${course._id}`)}
+          onkeydown={(e) => e.key === "Enter" && goto(`/courses/${course._id}`)}
         >
           <div class="course-content">
             <div class="course-header">
@@ -205,8 +184,10 @@
               <div class="course-actions-bottom">
                 <button
                   class="btn-primary"
-                  onclick={stopPropagation(() => openEditModal(course))}
-                  >编辑</button
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    openEditModal(course);
+                  }}>编辑</button
                 >
               </div>
             </div>
@@ -301,7 +282,6 @@
     width: 1.25rem;
     height: 1.25rem;
   }
-
 
   .filters {
     display: flex;
