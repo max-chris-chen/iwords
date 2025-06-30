@@ -4,6 +4,8 @@
   import type { Course } from "$lib/models/course";
   let { data }: { data: { courses: Course[] } } = $props();
 
+  let courses = $state([...data.courses]);
+
   let showModal = $state(false);
   let modalLoading = $state(false);
   let modalError = $state("");
@@ -24,8 +26,17 @@
     modalError = "";
   }
 
-  async function handleSaveCourse(event: CustomEvent) {
-    const { title, description, isPublic, status } = event.detail;
+  async function handleSaveCourse({
+    title,
+    description,
+    isPublic,
+    status,
+  }: {
+    title: string;
+    description: string;
+    isPublic: boolean;
+    status: string;
+  }) {
     modalLoading = true;
     modalError = "";
 
@@ -43,15 +54,15 @@
       if (!res.ok) throw new Error(await res.text());
       const savedCourse = await res.json();
 
-      if (editMode) {
-        const index = data.courses.findIndex(
-          (c) => c._id === editCourseData?._id,
+      if (editMode && editCourseData?._id) {
+        const courseToUpdate = courses.find(
+          (c) => c._id === editCourseData._id,
         );
-        if (index !== -1) {
-          data.courses[index] = { ...data.courses[index], ...savedCourse };
+        if (courseToUpdate) {
+          Object.assign(courseToUpdate, savedCourse);
         }
       } else {
-        data.courses.unshift(savedCourse);
+        courses.unshift(savedCourse);
       }
 
       showModal = false;
@@ -113,13 +124,13 @@
     </div>
   </div>
 
-  {#if data.courses.length === 0}
+  {#if courses.length === 0}
     <div class="empty-state">
       <p>没有找到课程。</p>
     </div>
   {:else}
     <div class="courses-grid">
-      {#each data.courses as course (course._id)}
+      {#each courses as course (course._id)}
         <div
           class="my-course-card"
           role="link"
@@ -232,7 +243,7 @@
   error={modalError}
   {editMode}
   course={editCourseData}
-  on:save={handleSaveCourse}
+  onSave={handleSaveCourse}
 />
 
 <style>

@@ -83,7 +83,7 @@
       </button>
       <div class="modal-header">
         <h2 class="modal-title">
-          {editMode ? "编辑 Lesson" : "添加 Lesson"}
+          {editMode ? "编辑课时" : "添加课时"}
         </h2>
         {#if sectionTitle}
           <p class="modal-subtitle">
@@ -96,25 +96,25 @@
 
       <form onsubmit={preventDefault(handleSave)}>
         <div class="form-group">
-          <label for="lesson-title">Lesson 标题</label>
+          <label for="lesson-title">课时标题</label>
           <input
             id="lesson-title"
             class="input-field"
-            placeholder="请输入 Lesson 标题"
+            placeholder="请输入课时标题"
             bind:value={localTitle}
-            aria-label="Lesson title"
+            aria-label="课时标题"
             autofocus
             required
           />
         </div>
         <div class="form-group">
-          <label for="lesson-content">Lesson 内容</label>
+          <label for="lesson-content">课时内容</label>
           <textarea
             id="lesson-content"
             class="input-field"
-            placeholder="请输入 Lesson 内容"
+            placeholder="请输入课时内容"
             bind:value={localContent}
-            aria-label="Lesson content"
+            aria-label="课时内容"
             maxlength="10000"
             rows="8"
           ></textarea>

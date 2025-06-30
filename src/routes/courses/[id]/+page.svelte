@@ -177,12 +177,12 @@
     editLessonError = "";
     editLessonLoading = true;
     if (!editLessonSectionId || !editLessonId) {
-      editLessonError = "未找到 Lesson";
+      editLessonError = "未找到课时";
       editLessonLoading = false;
       return;
     }
     if (!e.detail.title.trim()) {
-      editLessonError = "Lesson 标题不能为空";
+      editLessonError = "课时标题不能为空";
       editLessonLoading = false;
       return;
     }
@@ -219,11 +219,11 @@
 
 {#if loading}
   <div class="loading-container">
-    <p>Loading course details...</p>
+    <p>正在加载课程详情...</p>
   </div>
 {:else if error}
   <div class="error-container">
-    <p>Sorry, there was an error loading the course.</p>
+    <p>抱歉，加载课程时出错。</p>
     <p class="error-message">{error}</p>
   </div>
 {:else if course}
@@ -362,7 +362,7 @@
                   <div class="section-item-actions">
                     <button
                       class="btn-icon"
-                      aria-label="Add lesson"
+                      aria-label="添加课时"
                       onclick={() =>
                         section._id &&
                         openAddLessonModal(section._id, section.title)}
@@ -383,7 +383,7 @@
                     </button>
                     <button
                       class="btn-icon"
-                      aria-label="Edit section"
+                      aria-label="编辑章节"
                       onclick={() => openEditSectionModal(section)}
                     >
                       <svg
@@ -404,7 +404,7 @@
                     </button>
                     <button
                       class="btn-icon"
-                      aria-label="Delete section"
+                      aria-label="删除章节"
                       onclick={() => section._id && deleteSection(section._id)}
                     >
                       <svg
@@ -485,7 +485,7 @@
                     {/each}
                   </ul>
                 {:else}
-                  <p>No lessons in this section.</p>
+                  <p>本章节内还没有课时。</p>
                 {/if}
               </li>
             {/each}
@@ -528,11 +528,11 @@
   on:save={async (e) => {
     addLessonError = "";
     if (!addLessonSectionId) {
-      addLessonError = "Section not found.";
+      addLessonError = "未找到章节。";
       return;
     }
     if (!e.detail.title.trim()) {
-      addLessonError = "Lesson title required";
+      addLessonError = "课时标题不能为空";
       return;
     }
     addLessonLoading = true;

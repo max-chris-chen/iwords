@@ -1,12 +1,4 @@
 <script lang="ts">
-  import {
-    createBubbler,
-    stopPropagation,
-    preventDefault,
-  } from "svelte/legacy";
-
-  const bubble = createBubbler();
-  import { createEventDispatcher } from "svelte";
   import type { Course } from "$lib/models/course";
   import { CourseStatus } from "$lib/models/course";
 
@@ -16,12 +8,19 @@
     error = "",
     editMode = false,
     course = null,
+    onSave = undefined,
   } = $props<{
     open?: boolean;
     loading?: boolean;
     error?: string;
     editMode?: boolean;
     course?: Course | null;
+    onSave?: (data: {
+      title: string;
+      description: string;
+      isPublic: boolean;
+      status: CourseStatus;
+    }) => void;
   }>();
 
   let title = $state("");
@@ -45,10 +44,9 @@
     }
   });
 
-  const dispatch = createEventDispatcher();
-
-  function handleSave() {
-    dispatch("save", { title, description, isPublic, status });
+  function handleSave(event: Event) {
+    event.preventDefault();
+    onSave?.({ title, description, isPublic, status });
   }
 
   function handleClose() {
@@ -60,14 +58,18 @@
       handleClose();
     }
   }
+
+  function handleModalClick(event: MouseEvent) {
+    event.stopPropagation();
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-  <div class="modal-backdrop" onclick={handleClose}>
-    <div class="modal-content" onclick={stopPropagation(bubble("click"))}>
-      <button class="modal-close-btn" onclick={handleClose}>
+  <div class="modal-backdrop" role="presentation" onclick={handleClose}>
+    <div class="modal-content" role="presentation" onclick={handleModalClick}>
+      <button class="modal-close-btn" aria-label="关闭" onclick={handleClose}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -91,7 +93,7 @@
             : "填写课程的基本信息，开始你的教学之旅。"}
         </p>
       </div>
-      <form onsubmit={preventDefault(handleSave)}>
+      <form onsubmit={handleSave}>
         <div class="form-group">
           <label for="title">课程标题</label>
           <input
@@ -120,18 +122,18 @@
           </select>
         </div>
         <div class="flex items-center justify-between">
-          <label for="is-public" class="flex items-center cursor-pointer">
-            <div class="relative">
-              <input
-                type="checkbox"
-                id="is-public"
-                class="sr-only"
-                bind:checked={isPublic}
-              />
-              <div class="toggle-bg"></div>
-              <div class="toggle-dot"></div>
-            </div>
-            <div class="ml-3 text-gray-700 font-medium">设为公开课程</div>
+          <label
+            for="is-public"
+            class="flex items-center cursor-pointer select-none relative"
+          >
+            <input
+              type="checkbox"
+              id="is-public"
+              class="custom-checkbox"
+              bind:checked={isPublic}
+            />
+            <span class="checkbox-visual mr-2"></span>
+            <span class="text-gray-700 font-medium">设为公开课程</span>
           </label>
         </div>
         {#if error}
@@ -264,31 +266,6 @@
     border-width: 0;
   }
 
-  /* Custom Toggle Switch */
-  .toggle-bg {
-    width: 44px;
-    height: 24px;
-    background-color: #e5e7eb;
-    border-radius: 9999px;
-    transition: background-color 0.2s;
-  }
-  input:checked + .toggle-bg {
-    background-color: #2563eb;
-  }
-  .toggle-dot {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 20px;
-    height: 20px;
-    background-color: white;
-    border-radius: 50%;
-    transition: transform 0.2s;
-  }
-  input:checked ~ .toggle-dot {
-    transform: translateX(20px);
-  }
-
   .error-message {
     text-align: center;
     color: #dc2626;
@@ -350,5 +327,53 @@
     outline: none;
     border-color: #2563eb;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  }
+
+  .custom-checkbox {
+    position: absolute;
+    opacity: 0;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    z-index: 2;
+    cursor: pointer;
+  }
+  .checkbox-visual {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #2563eb;
+    border-radius: 6px;
+    background: #fff;
+    transition:
+      background 0.2s,
+      border-color 0.2s;
+    position: relative;
+    vertical-align: middle;
+    box-sizing: border-box;
+    margin-right: 0.5rem;
+  }
+  .custom-checkbox:checked + .checkbox-visual {
+    background: #2563eb;
+    border-color: #2563eb;
+  }
+  .custom-checkbox:checked + .checkbox-visual::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 6px;
+    height: 12px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .custom-checkbox:focus + .checkbox-visual {
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    border-color: #1d4ed8;
+  }
+  .custom-checkbox:hover + .checkbox-visual,
+  .custom-checkbox:active + .checkbox-visual {
+    border-color: #1d4ed8;
   }
 </style>
