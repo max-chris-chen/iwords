@@ -17,7 +17,13 @@
 
 <div class="course-hero-card">
   <div class="course-image-placeholder">
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      width="64"
+      height="64"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <defs>
         <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" style="stop-color:#4F46E5;stop-opacity:1" />
@@ -28,9 +34,15 @@
           <stop offset="100%" style="stop-color:#6366F1;stop-opacity:1" />
         </linearGradient>
       </defs>
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z" fill="url(#grad1)"/>
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20v1H6.5A2.5 2.5 0 0 0 4 19.5z" fill="url(#grad2)"/>
-      <path d="M7 6h10v1H7V6zm0 4h10v1H7v-1zm0 4h5v1H7v-1z" fill="white"/>
+      <path
+        d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"
+        fill="url(#grad1)"
+      />
+      <path
+        d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20v1H6.5A2.5 2.5 0 0 0 4 19.5z"
+        fill="url(#grad2)"
+      />
+      <path d="M7 6h10v1H7V6zm0 4h10v1H7v-1zm0 4h5v1H7v-1z" fill="white" />
     </svg>
   </div>
   <div class="course-info">
