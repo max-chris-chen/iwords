@@ -9,7 +9,7 @@
         lessons: Array<Lesson & { duration?: string }>;
       }
     >;
-    totalHours?: number;
+    totalLessons?: number;
   }
 
   let { course }: { course: CourseWithSections } = $props();
@@ -17,19 +17,20 @@
 
 <div class="course-hero-card">
   <div class="course-image-placeholder">
-    <svg
-      width="64"
-      height="64"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-      <circle cx="8.5" cy="8.5" r="1.5"></circle>
-      <polyline points="21 15 16 10 5 21"></polyline>
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#4F46E5;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#818CF8;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#3730A3;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#6366F1;stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z" fill="url(#grad1)"/>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20v1H6.5A2.5 2.5 0 0 0 4 19.5z" fill="url(#grad2)"/>
+      <path d="M7 6h10v1H7V6zm0 4h10v1H7v-1zm0 4h5v1H7v-1z" fill="white"/>
     </svg>
   </div>
   <div class="course-info">
@@ -38,7 +39,7 @@
       {course.description || ""}
     </p>
     <div class="course-stats">
-      <span class="stat">
+      <!-- <span class="stat">
         <svg
           width="16"
           height="16"
@@ -57,7 +58,7 @@
           /></svg
         >
         <span>{course.studentCount || 0} 学员</span>
-      </span>
+      </span> -->
       <span class="stat">
         <svg
           width="16"
@@ -72,7 +73,7 @@
             points="12 6 12 12 16 14"
           /></svg
         >
-        <span>{course.totalHours || 0} 课时</span>
+        <span>{course.totalLessons || 0} 课时</span>
       </span>
       <span class="stat">
         <svg

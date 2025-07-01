@@ -1,7 +1,4 @@
 <script lang="ts">
-  import { stopPropagation } from "svelte/legacy";
-
-  import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import AddLessonModal from "$lib/modals/AddLessonModal.svelte";
   import AddSectionModal from "$lib/modals/AddSectionModal.svelte";
@@ -29,7 +26,7 @@
         lessons: Array<Lesson & { duration?: string }>;
       }
     >;
-    totalHours?: number;
+    totalLessons?: number;
   }
 
   let course = $state<CourseWithSections | null>(null);
@@ -130,6 +127,10 @@
               section.lessons = await fetchLessons(id, section._id);
             }
           }),
+        );
+        courseData.totalLessons = courseData.sections.reduce(
+          (acc, section) => acc + (section.lessons?.length || 0),
+          0,
         );
       }
       course = courseData;

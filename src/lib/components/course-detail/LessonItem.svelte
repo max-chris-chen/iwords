@@ -9,8 +9,8 @@
     sectionId,
   }: {
     lesson: Lesson & { duration?: string };
-    courseId: string;
-    sectionId: string;
+    courseId: string | undefined;
+    sectionId: string | undefined;
   } = $props();
 </script>
 
@@ -21,13 +21,15 @@
         width="16"
         height="16"
         viewBox="0 0 24 24"
-        fill="currentColor"
+        fill="none"
         stroke="currentColor"
-        stroke-width="1"
+        stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round"
       >
-        <polygon points="5 3 19 12 5 21 5 3" />
+        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+        <path d="M8 7h6" />
+        <path d="M8 11h8" />
       </svg>
     </div>
     <span class="lesson-title">{lesson.title}</span>

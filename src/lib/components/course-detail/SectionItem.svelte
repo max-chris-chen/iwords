@@ -15,7 +15,7 @@
     onDeleteSection,
   }: {
     section: SectionWithLessons;
-    courseId: string;
+    courseId: string | undefined;
     index: number;
     onAddLesson: (sectionId: string, sectionTitle: string) => void;
     onEditSection: (section: Section) => void;
@@ -27,9 +27,6 @@
   <div class="section-item-header">
     <div class="section-item-title">
       <h3>第{index + 1}章: {section.title}</h3>
-      <p>
-        {section.description || ""}
-      </p>
     </div>
     <div class="section-item-actions">
       <button

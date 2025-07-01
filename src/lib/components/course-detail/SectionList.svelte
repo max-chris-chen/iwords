@@ -15,7 +15,7 @@
     onDeleteSection,
   }: {
     sections: SectionWithLessons[];
-    courseId: string;
+    courseId: string | undefined;
     onOpenSectionModal: () => void;
     onAddLesson: (sectionId: string, sectionTitle: string) => void;
     onEditSection: (section: Section) => void;
