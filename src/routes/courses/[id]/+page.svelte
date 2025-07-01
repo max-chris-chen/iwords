@@ -247,7 +247,7 @@
     </header>
 
     <main>
-      <CourseHeader course={course} />
+      <CourseHeader {course} />
       <SectionList
         sections={course.sections}
         courseId={course._id}
