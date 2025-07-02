@@ -81,7 +81,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const recordingsCollection = db.collection("user_recordings");
 
     const newRecording = {
-      userId: new ObjectId(user._id),
+      userId: new ObjectId(user.userId),
       lessonId: new ObjectId(lessonId),
       sentenceId: new ObjectId(sentenceId),
       recordingUrl: relativePath,

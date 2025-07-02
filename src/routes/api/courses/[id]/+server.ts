@@ -10,6 +10,7 @@ import {
 export const GET: RequestHandler = async ({ params, locals }) => {
   try {
     const userId = getAuthenticatedUserId(locals);
+    console.log("userId", userId);
     let courseId: ObjectId;
     try {
       courseId = new ObjectId(params.id);

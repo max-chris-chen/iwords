@@ -1,31 +1,24 @@
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { onDestroy, onMount } from "svelte";
   import AddLessonModal from "$lib/modals/AddLessonModal.svelte";
   import { updateLesson } from "$lib/api/lesson";
   import { fetchRecordings } from "$lib/api/recording";
   import type { UserRecording } from "$lib/models/recording";
+  import ListeningMode from "$lib/components/lesson/ListeningMode.svelte";
+  import ReadingMode from "$lib/components/lesson/ReadingMode.svelte";
+  import WritingMode from "$lib/components/lesson/WritingMode.svelte";
+
   let { data } = $props();
 
-  let { lesson, courseId, sectionId } = $state(data);
+  let { courseId, sectionId } = data;
+  let lesson = $derived(data.lesson);
 
   let currentSentenceIndex = $state(0);
-  let learningMode = $state("listening"); // listening, reading, writing
-  let showSentence = $state(false);
+  let learningMode = $state<"listening" | "reading" | "writing">("listening"); // listening, reading, writing
   let isPlaying = $state(false);
   let highlightedWordIndex = $state(-1);
-
-  let isRecording = $state(false);
-  let recordedAudioUrl: string | null = $state(null);
-  let recordedAudioBlob: Blob | null = null;
-  let mediaRecorder: MediaRecorder | null = null;
-  let audioChunks: Blob[] = [];
-  let recordingTime = $state(0);
-  let recordingTimer: number | null = null;
   let userRecordings: UserRecording[] = $state([]);
-  let isPreparingToRecord = $state(false);
-  let audioContext: AudioContext | null = null;
+
   // UI state for edit lesson modal
   let showEditLessonModal = $state(false);
   let editLessonTitle = $state("");
@@ -33,27 +26,8 @@
   let editLessonError = $state("");
   let editLessonLoading = $state(false);
 
-  let userInputs: string[] = $state([]);
-  let writingFeedback = $state("");
-  let wordCorrectness: (boolean | null)[] = $state([]);
-
-  let allWordsCorrect = $derived(
-    wordCorrectness.length > 0 && wordCorrectness.every((c) => c === true),
-  );
-  let someWordsIncorrect = $derived(
-    wordCorrectness.length > 0 && wordCorrectness.some((c) => c === false),
-  );
-
   let currentSentenceObject = $derived(
     lesson?.sentences?.[currentSentenceIndex],
-  );
-  let currentSentenceId = $derived(
-    typeof currentSentenceObject === "string"
-      ? null
-      : currentSentenceObject?._id,
-  );
-  let currentSentenceRecordings = $derived(
-    userRecordings.filter((r) => r.sentenceId === currentSentenceId),
   );
   let currentSentenceText = $derived(
     (typeof currentSentenceObject === "string"
@@ -62,91 +36,9 @@
   );
   let words = $derived(currentSentenceText.split(" "));
   let maskedSentence = $derived(currentSentenceText.replace(/[a-zA-Z]/g, "*"));
-  run(() => {
-    if (words.length > 0) {
-      userInputs = Array(words.length).fill("");
-      wordCorrectness = Array(words.length).fill(null);
-    }
-  });
-
-  function openEditLessonModal() {
-    showEditLessonModal = true;
-    editLessonTitle = lesson.title;
-    editLessonContent = lesson.sentences.map((s) => s.text).join("\n");
-    editLessonError = "";
-  }
 
   function closeEditLessonModal() {
     showEditLessonModal = false;
-  }
-
-  interface CustomWindow extends Window {
-    webkitAudioContext?: typeof AudioContext;
-  }
-
-  function initAudioContext() {
-    if (typeof window !== "undefined" && !audioContext) {
-      try {
-        const CustomAudioContext =
-          (window as CustomWindow).AudioContext ||
-          (window as CustomWindow).webkitAudioContext;
-        if (CustomAudioContext) {
-          audioContext = new CustomAudioContext();
-          // Attempt to resume context immediately, as this is happening inside a user interaction handler
-          if (audioContext.state === "suspended") {
-            audioContext.resume().then(() => {
-              console.log("AudioContext resumed on mode switch.");
-            });
-          }
-        } else {
-          console.error("Web Audio API is not supported in this browser.");
-        }
-      } catch (e) {
-        console.error("Web Audio API is not supported in this browser.", e);
-      }
-    }
-  }
-
-  function playKeySound() {
-    if (typeof window === "undefined") return;
-
-    if (!audioContext) {
-      // Fallback for page reloads directly into writing mode
-      initAudioContext();
-      if (!audioContext) return;
-    }
-
-    // The _play function remains the same
-    function _play() {
-      if (!audioContext) return;
-      const now = audioContext.currentTime;
-      const gainNode = audioContext.createGain();
-      gainNode.connect(audioContext.destination);
-
-      // A slightly softer volume and a decay that gives it a bit of "body"
-      gainNode.gain.setValueAtTime(0.2, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
-
-      const oscillator = audioContext.createOscillator();
-      oscillator.connect(gainNode);
-      oscillator.type = "triangle"; // Triangle wave is softer than a square wave
-
-      // A rapid pitch drop simulates a "strike" or "thwack" sound.
-      oscillator.frequency.setValueAtTime(880, now); // Start at a higher pitch
-      oscillator.frequency.exponentialRampToValueAtTime(440, now + 0.05); // Quickly drop to a lower one
-
-      oscillator.start(now);
-      oscillator.stop(now + 0.1); // Sound lasts for 0.1 seconds
-    }
-
-    if (audioContext.state === "suspended") {
-      audioContext.resume().then(() => {
-        console.log("AudioContext resumed on key press.");
-        _play();
-      });
-    } else {
-      _play();
-    }
   }
 
   async function handleEditLessonModalEdit(e: CustomEvent) {
@@ -174,90 +66,12 @@
       );
       lesson = { ...lesson, ...updatedLesson };
       closeEditLessonModal();
-      // Optionally, force a reload of the page to see changes if direct update is complex
-      // window.location.reload();
     } catch (err: unknown) {
       const error = err as Error;
       editLessonError = error.message || "更新失败";
     } finally {
       editLessonLoading = false;
     }
-  }
-
-  function handleWordInput() {
-    wordCorrectness = Array(words.length).fill(null);
-    writingFeedback = "";
-  }
-
-  function handleKeyDown(event: KeyboardEvent, index: number) {
-    // Only play sound for character keys and backspace
-    if (
-      !event.metaKey &&
-      !event.ctrlKey &&
-      !event.altKey &&
-      (event.key.length === 1 || event.key === "Backspace")
-    ) {
-      playKeySound();
-    }
-    const target = event.target as HTMLInputElement;
-
-    if (event.key === " ") {
-      event.preventDefault();
-      if (index < words.length - 1) {
-        (target.nextElementSibling as HTMLInputElement)?.focus();
-      }
-    } else if (
-      event.key === "ArrowRight" &&
-      target.selectionStart === userInputs[index].length &&
-      index < words.length - 1
-    ) {
-      event.preventDefault();
-      (target.nextElementSibling as HTMLInputElement)?.focus();
-    } else if (
-      event.key === "ArrowLeft" &&
-      target.selectionStart === 0 &&
-      index > 0
-    ) {
-      event.preventDefault();
-      (target.previousElementSibling as HTMLInputElement)?.focus();
-    } else if (
-      event.key === "Backspace" &&
-      target.selectionStart === 0 &&
-      target.selectionEnd === 0 &&
-      index > 0
-    ) {
-      (target.previousElementSibling as HTMLInputElement)?.focus();
-    }
-  }
-
-  function checkAnswer() {
-    const newWordCorrectness = words.map((correctWord, i) => {
-      const userWord = userInputs[i] || "";
-      const cleanUserWord = userWord
-        .trim()
-        .replace(/[.,/#!$%^&*;:{}=\-_`~()'’]/g, "")
-        .toLowerCase();
-      const cleanCorrectWord = correctWord
-        .replace(/[.,/#!$%^&*;:{}=\-_`~()'’]/g, "")
-        .toLowerCase();
-      return cleanUserWord === cleanCorrectWord;
-    });
-    wordCorrectness = newWordCorrectness;
-
-    const allCorrect = newWordCorrectness.every((c) => c === true);
-
-    if (allCorrect) {
-      writingFeedback = "太棒了，完全正确！";
-    } else {
-      writingFeedback = "有些地方不对哦，请检查红色的部分。";
-    }
-  }
-
-  function clearWritingState() {
-    userInputs = [];
-    writingFeedback = "";
-    wordCorrectness = [];
-    showSentence = false;
   }
 
   function playCurrentSentence() {
@@ -312,10 +126,7 @@
     if (lesson && currentSentenceIndex < lesson.sentences.length - 1) {
       window.speechSynthesis?.cancel();
       currentSentenceIndex++;
-      showSentence = false;
       highlightedWordIndex = -1;
-      resetRecording();
-      writingFeedback = "";
     }
   }
 
@@ -323,176 +134,27 @@
     if (currentSentenceIndex > 0) {
       window.speechSynthesis?.cancel();
       currentSentenceIndex--;
-      showSentence = false;
       highlightedWordIndex = -1;
-      resetRecording();
-      writingFeedback = "";
     }
   }
 
-  async function startRecording() {
-    if (isRecording || isPreparingToRecord) return;
-
-    isPreparingToRecord = true;
-    recordedAudioUrl = null;
-    recordedAudioBlob = null;
-    recordingTime = 0;
-    audioChunks = [];
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-
-      mediaRecorder.onstart = () => {
-        isPreparingToRecord = false;
-        isRecording = true;
-        recordingTimer = setInterval(() => {
-          recordingTime++;
-        }, 1000);
-      };
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        isRecording = false;
-        clearInterval(recordingTimer);
-        stream.getTracks().forEach((track) => track.stop()); // Important cleanup
-
-        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-        recordedAudioUrl = URL.createObjectURL(audioBlob);
-        recordedAudioBlob = audioBlob;
-        audioChunks = [];
-
-        const success = await submitRecording();
-        if (success) {
-          alert("录音提交成功！");
-        }
-      };
-
-      mediaRecorder.start();
-    } catch (err) {
-      console.error("Error starting recording:", err);
-      alert("无法开始录音，请检查麦克风权限。");
-      isPreparingToRecord = false;
-    }
-  }
-
-  function stopRecording() {
-    if (mediaRecorder && isRecording) {
-      mediaRecorder.stop();
-    }
-  }
-
-  function resetRecording() {
-    if (isRecording) {
-      stopRecording();
-    }
-    recordedAudioUrl = null;
-    audioChunks = [];
-    if (mediaRecorder?.stream) {
-      mediaRecorder.stream.getTracks().forEach((track) => track.stop());
-    }
-    mediaRecorder = null;
-    clearInterval(recordingTimer);
-    recordingTime = 0;
-  }
-
-  function formatTime(seconds: number) {
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  }
-
-  async function submitRecording() {
-    if (!recordedAudioBlob) {
-      alert("没有可提交的录音。");
-      return false;
-    }
-    try {
-      const formData = new FormData();
-      formData.append("audio", recordedAudioBlob, "recording.webm");
-      if (!lesson._id) {
-        throw new Error("当前课程没有ID，无法提交。");
-      }
-      formData.append("courseId", courseId);
-      formData.append("lessonId", lesson._id);
-
-      const sentenceObject = lesson.sentences[currentSentenceIndex];
-      const sentenceId =
-        typeof sentenceObject !== "string" && sentenceObject?._id
-          ? sentenceObject._id
-          : null;
-
-      if (!sentenceId) {
-        throw new Error("当前句子没有ID，无法提交。");
-      }
-      formData.append("sentenceId", sentenceId);
-      formData.append("duration", recordingTime.toString());
-
-      const response = await fetch("/api/courses/recording", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        if (lesson._id) {
-          userRecordings = await fetchRecordings(lesson._id);
-        }
-        return true;
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "提交失败，请重试。");
-      }
-    } catch (error) {
-      console.error("Submission error:", error);
-      alert(`提交出错: ${error instanceof Error ? error.message : "未知错误"}`);
-      return false;
-    }
-  }
-
-  async function deleteRecording(recordingId: string) {
-    if (!confirm("确定要删除这条录音吗？")) {
-      return;
-    }
-    try {
-      const response = await fetch(`/api/recordings/${recordingId}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        userRecordings = userRecordings.filter((r) => r._id !== recordingId);
-        alert("录音已删除。");
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "删除失败。");
-      }
-    } catch (error) {
-      console.error("Delete error:", error);
-      alert(`删除出错: ${error instanceof Error ? error.message : "未知错误"}`);
-    }
-  }
-
-  onMount(async () => {
-    console.debug("lesson", lesson);
-    console.debug("lesson._id", lesson._id);
+  async function refreshRecordings() {
     if (lesson._id) {
       try {
         userRecordings = await fetchRecordings(lesson._id);
-        console.debug("userRecordings", userRecordings);
       } catch (error) {
         console.error("Failed to fetch recordings:", error);
       }
     }
+  }
+
+  onMount(async () => {
+    await refreshRecordings();
   });
+
   onDestroy(() => {
     if (typeof window !== "undefined") {
       window.speechSynthesis?.cancel();
-    }
-    if (audioContext) {
-      audioContext.close();
     }
   });
 </script>
@@ -532,25 +194,7 @@
           >
         </div>
       </div>
-      <div class="mt-4 flex justify-end">
-        <button class="btn" onclick={openEditLessonModal}>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="lucide lucide-pencil"
-            ><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
-            ></path></svg
-          >
-          <span>编辑</span>
-        </button>
-      </div>
+      <div class="mt-4 flex justify-end"></div>
     </div>
 
     <div class="card">
@@ -560,22 +204,18 @@
           class:active={learningMode === "listening"}
           onclick={() => {
             learningMode = "listening";
-            clearWritingState();
           }}>听力模式</button
         >
         <button
           class:active={learningMode === "reading"}
           onclick={() => {
             learningMode = "reading";
-            clearWritingState();
           }}>跟读模式</button
         >
         <button
           class:active={learningMode === "writing"}
           onclick={() => {
             learningMode = "writing";
-            clearWritingState();
-            initAudioContext();
           }}>听写模式</button
         >
       </div>
@@ -634,280 +274,20 @@
     </div>
 
     <div class="card sentence-card">
-      {#if learningMode === "writing"}
-        <div class="writing-mode-container">
-          <p class="sentence-text">
-            {#if showSentence}
-              {currentSentenceText}
-            {:else}
-              {maskedSentence}
-            {/if}
-          </p>
-
-          <div class="writing-input-container">
-            {#each words as word, i}
-              <input
-                type="text"
-                bind:value={userInputs[i]}
-                oninput={() => handleWordInput()}
-                onkeydown={(e) => handleKeyDown(e, i)}
-                class="word-input"
-                class:incorrect={wordCorrectness[i] === false}
-                style="width: {word.length * 1.2 + 2}ch;"
-                autocomplete="off"
-                autocorrect="off"
-                autocapitalize="off"
-                spellcheck="false"
-              />
-            {/each}
-          </div>
-
-          <div class="writing-actions">
-            <button
-              class="btn btn-primary"
-              onclick={checkAnswer}
-              disabled={userInputs.join("").trim() === ""}>检查</button
-            >
-            <button
-              class="btn-icon btn-reveal"
-              onclick={() => (showSentence = !showSentence)}
-            >
-              {#if showSentence}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-eye-off"
-                  ><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path
-                    d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
-                  /><path
-                    d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"
-                  /><line x1="2" x2="22" y1="2" y2="22" /></svg
-                >
-                <span>隐藏答案</span>
-              {:else}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-eye"
-                  ><path
-                    d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
-                  /><circle cx="12" cy="12" r="3" /></svg
-                >
-                <span>查看答案</span>
-              {/if}
-            </button>
-          </div>
-
-          {#if writingFeedback}
-            <p
-              class="feedback"
-              class:correct={allWordsCorrect}
-              class:incorrect={someWordsIncorrect}
-            >
-              {writingFeedback}
-            </p>
-          {/if}
-        </div>
-      {:else}
-        <p class="sentence-text">
-          {#if showSentence || learningMode === "reading"}
-            {#each words as word, i}
-              <span class:highlight={i === highlightedWordIndex}>{word}</span>
-              {" "}
-            {/each}
-          {:else}
-            {maskedSentence}
-          {/if}
-        </p>
-      {/if}
-
-      {#if learningMode === "reading"}
-        <div class="recording-controls">
-          {#if !isRecording}
-            <button
-              class="btn btn-primary"
-              onclick={startRecording}
-              disabled={isPreparingToRecord}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="lucide lucide-mic"
-                ><path
-                  d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"
-                /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line
-                  x1="12"
-                  x2="12"
-                  y1="19"
-                  y2="22"
-                /></svg
-              >
-              {#if isPreparingToRecord}
-                <span>准备中...</span>
-              {:else}
-                <span>开始录音</span>
-              {/if}
-            </button>
-          {:else}
-            <button
-              class="btn btn-danger"
-              onclick={stopRecording}
-              disabled={!isRecording}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="lucide lucide-stop-circle"
-                ><circle cx="12" cy="12" r="10" /><rect
-                  width="6"
-                  height="6"
-                  x="9"
-                  y="9"
-                /></svg
-              >
-              <span>停止录音 ({formatTime(recordingTime)})</span>
-            </button>
-          {/if}
-        </div>
-
-        {#if recordedAudioUrl}
-          <div class="recorded-audio">
-            <h3>我的录音</h3>
-            <audio controls src={recordedAudioUrl}></audio>
-          </div>
-        {/if}
-
-        {#if currentSentenceRecordings.length > 0}
-          <div class="recordings-list-container">
-            <h3>我的跟读记录</h3>
-            <ul class="recordings-list">
-              {#each currentSentenceRecordings as recording}
-                <li class="recording-item">
-                  <div class="recording-info">
-                    <span>
-                      录制于: {new Date(recording.createdAt).toLocaleString()}
-                      {#if recording.duration}
-                        <span style="margin-left: 1rem;">
-                          (时长: {formatTime(recording.duration)})
-                        </span>
-                      {/if}
-                    </span>
-                    <button
-                      class="btn-icon btn-delete"
-                      onclick={() =>
-                        recording._id &&
-                        deleteRecording(recording._id.toString())}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        class="lucide lucide-trash-2"
-                        ><path d="M3 6h18" /><path
-                          d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                        /><line x1="10" x2="10" y1="11" y2="17" /><line
-                          x1="14"
-                          x2="14"
-                          y1="11"
-                          y2="17"
-                        /></svg
-                      >
-                    </button>
-                  </div>
-                  <audio
-                    controls
-                    src={`/api/audio/${recording.recordingUrl.replace(/\\/g, "/")}`}
-                  ></audio>
-                </li>
-              {/each}
-            </ul>
-          </div>
-        {/if}
-      {/if}
-
-      {#if learningMode !== "reading" && learningMode !== "writing"}
-        <button
-          class="btn-icon btn-reveal"
-          onclick={() => (showSentence = !showSentence)}
-        >
-          {#if showSentence}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="lucide lucide-eye-off"
-            >
-              <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-              <path
-                d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
-              />
-              <path
-                d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"
-              />
-              <line x1="2" x2="22" y1="2" y2="22" />
-            </svg>
-            <span>隐藏</span>
-          {:else}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="lucide lucide-eye"
-              ><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle
-                cx="12"
-                cy="12"
-                r="3"
-              /></svg
-            >
-            <span>查看</span>
-          {/if}
-        </button>
+      {#if learningMode === "listening"}
+        <ListeningMode {words} {highlightedWordIndex} {maskedSentence} />
+      {:else if learningMode === "reading"}
+        <ReadingMode
+          {lesson}
+          {courseId}
+          {currentSentenceIndex}
+          {words}
+          {highlightedWordIndex}
+          {userRecordings}
+          {refreshRecordings}
+        />
+      {:else if learningMode === "writing"}
+        <WritingMode {words} {currentSentenceText} />
       {/if}
 
       <div class="navigation-buttons">
@@ -1158,20 +538,18 @@
     padding-top: 2.5rem;
     padding-bottom: 2.5rem;
   }
-  .sentence-text {
-    font-size: 1.25rem;
-    color: var(--text-primary);
-    margin: 0 0 1.5rem;
-    letter-spacing: 2px;
-    min-height: 40px;
+
+  .fallback-info {
+    margin-top: 1rem;
+    color: var(--text-light);
+    font-style: italic;
   }
-  .btn-reveal {
-    margin: 0 auto;
-  }
+
   .navigation-buttons {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-top: 1.5rem;
   }
   .btn {
     display: inline-flex;
@@ -1201,164 +579,5 @@
   }
   .btn-primary:hover:not(:disabled) {
     background-color: var(--primary-hover-color, #4f46e5);
-  }
-  .btn-danger {
-    background-color: #ef4444;
-    color: white;
-    border-color: #ef4444;
-  }
-  .btn-danger:hover:not(:disabled) {
-    background-color: #dc2626;
-  }
-
-  .sentence-text span.highlight {
-    background-color: var(--blue-bg-light);
-    color: var(--primary-color);
-    border-radius: 4px;
-    padding: 2px 4px;
-  }
-
-  .recording-controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 1rem;
-    gap: 1rem;
-  }
-
-  .recorded-audio {
-    margin-top: 1.5rem;
-    text-align: center;
-  }
-
-  .recorded-audio h3 {
-    margin-bottom: 0.5rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-  }
-
-  .recorded-audio audio {
-    width: 100%;
-    margin-bottom: 1rem;
-  }
-
-  .success-message {
-    color: #16a34a;
-    margin-top: 0.5rem;
-  }
-
-  .error-message {
-    color: #ef4444;
-    margin-top: 0.5rem;
-  }
-
-  .recordings-list-container {
-    margin-top: 2rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border-color);
-  }
-
-  .recordings-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .recording-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    background-color: var(--card-bg-color);
-    border-radius: var(--rounded-lg);
-    border: 1px solid var(--border-color);
-    transition: all 0.2s ease-in-out;
-  }
-
-  .recording-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    font-size: 0.875rem;
-    color: var(--text-muted-color);
-  }
-
-  .btn-delete {
-    color: var(--text-muted-color);
-    transition: color 0.2s ease-in-out;
-  }
-
-  .btn-delete:hover {
-    color: var(--danger-color);
-  }
-
-  .recording-duration {
-    font-weight: 500;
-  }
-
-  .writing-mode-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.5rem;
-  }
-
-  .writing-input-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.5rem;
-    width: 100%;
-    position: relative;
-    padding: 0.75rem 1rem;
-    font-size: 1.1rem;
-    cursor: text;
-    min-height: 48px;
-  }
-
-  .word-input {
-    border: none;
-    border-bottom: 2px solid var(--text-primary);
-    background-color: transparent;
-    font-size: 1.1rem;
-    padding: 2px 0;
-    margin: 0 0.25rem;
-    text-align: center;
-    font-family: monospace;
-  }
-  .word-input:focus {
-    outline: none;
-    border-bottom-color: var(--primary-color);
-  }
-
-  .word-input.incorrect {
-    color: var(--danger-color);
-    border-bottom-color: var(--danger-color);
-  }
-
-  .writing-actions {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-  }
-
-  .feedback {
-    font-weight: 500;
-  }
-  .feedback.correct {
-    color: var(--success-color);
-  }
-  .feedback.incorrect {
-    color: var(--danger-color);
-  }
-
-  .answer-text {
-    color: var(--success-color);
-    font-weight: 600;
-    margin-top: 1rem;
   }
 </style>

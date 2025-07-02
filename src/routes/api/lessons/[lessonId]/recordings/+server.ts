@@ -15,9 +15,8 @@ export const GET: RequestHandler = async ({ locals, params }) => {
   }
 
   try {
-    const userId = new ObjectId(user._id);
+    const userId = new ObjectId(user.userId);
     const lessonObjectId = new ObjectId(lessonId);
-
     const db = await getDb();
     const userRecordings = await db
       .collection("user_recordings")
@@ -25,7 +24,7 @@ export const GET: RequestHandler = async ({ locals, params }) => {
         userId: userId,
         lessonId: lessonObjectId,
       })
-      .sort({ sentenceIndex: 1 })
+      .sort({ createdAt: -1 })
       .toArray();
 
     if (!userRecordings) {
