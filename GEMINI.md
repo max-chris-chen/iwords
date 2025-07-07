@@ -14,17 +14,17 @@ This file helps the Gemini code assistant understand the project's structure, co
 - **Database**: MongoDB
 - **Authentication**: JSON Web Tokens (JWT)
 - **API Integrations**:
-    - Speechify API (for text-to-speech)
-    - Deepseek API (likely for AI-powered features)
+  - Speechify API (for text-to-speech)
+  - Deepseek API (likely for AI-powered features)
 
 ## Project Structure
 
 - `src/lib/`: Core application logic, components, and server-side code.
-    - `src/lib/components/`: Reusable Svelte components.
-    - `src/lib/server/`: Server-side logic, including database interactions and authentication.
-    - `src/lib/models/`: Data models for the application (e.g., Course, User).
+  - `src/lib/components/`: Reusable Svelte components.
+  - `src/lib/server/`: Server-side logic, including database interactions and authentication.
+  - `src/lib/models/`: Data models for the application (e.g., Course, User).
 - `src/routes/`: SvelteKit's file-based routing.
-    - `src/routes/api/`: API endpoints for the application.
+  - `src/routes/api/`: API endpoints for the application.
 - `static/`: Static assets like images and fonts.
 - `package.json`: Project dependencies and scripts.
 - `.env.example`: Required environment variables.
