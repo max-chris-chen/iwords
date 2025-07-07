@@ -22,18 +22,23 @@ export const handle: Handle = async ({ event, resolve }) => {
   const token = event.cookies.get("token");
   event.locals.user = null; // Initialize user as null
 
-  if (token) {
+  if (env.DEV_MODE_BYPASS_LOGIN === 'true') {
+    event.locals.user = {
+      userId: env.DEV_USER_ID || 'dev-user-id',
+      username: env.DEV_USER_NAME || 'dev-user',
+    };
+  } else if (token) {
     try {
       const decoded = jwt.verify(token, env.JWT_SECRET, {
-        algorithms: ["HS256"],
+        algorithms: ['HS256'],
       });
-      if (typeof decoded === "object" && decoded !== null) {
-        event.locals.user = decoded as App.Locals["user"];
+      if (typeof decoded === 'object' && decoded !== null) {
+        event.locals.user = decoded as App.Locals['user'];
       } else {
         event.locals.user = null;
       }
     } catch (err) {
-      console.error("JWT verification failed:", err);
+      console.error('JWT verification failed:', err);
       event.locals.user = null;
     }
   }

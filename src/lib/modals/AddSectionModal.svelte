@@ -1,11 +1,4 @@
 <script lang="ts">
-  import {
-    createBubbler,
-    stopPropagation,
-    preventDefault,
-  } from "svelte/legacy";
-
-  const bubble = createBubbler();
   let {
     onAdd,
     onEdit,
@@ -48,9 +41,9 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-  <div class="modal-backdrop" onclick={handleClose}>
-    <div class="modal-content" onclick={stopPropagation(bubble("click"))}>
-      <button class="modal-close-btn" onclick={handleClose}>
+  <div class="modal-backdrop" role="button" tabindex="0" onclick={handleClose} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClose(); }}>
+    <div class="modal-content" role="dialog" tabindex="0" onclick={(e) => e.stopPropagation()} >
+      <button class="modal-close-btn" type="button" aria-label="关闭" onclick={handleClose}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -72,7 +65,7 @@
           {editMode ? "修改章节标题" : "为你的课程添加一个新的章节"}
         </p>
       </div>
-      <form onsubmit={preventDefault(handleSubmit)}>
+      <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
         <div class="form-group">
           <label for="title">章节标题</label>
           {#if editMode}
