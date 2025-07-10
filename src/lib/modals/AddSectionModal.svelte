@@ -1,31 +1,50 @@
 <script lang="ts">
+  import { enhance } from "$app/forms";
+  import type { ActionData } from "../../routes/courses/[id]/$types";
+
   let {
     onAdd,
-    onEdit,
     open = $bindable(false),
-    newTitle = $bindable(""),
     error = "",
-    loading = false,
+    loading = $bindable(false),
     editMode = false,
     editTitle = $bindable(""),
+    sectionId = "",
+    form,
   } = $props<{
     onAdd?: () => void;
-    onEdit?: () => void;
     open?: boolean;
-    newTitle?: string;
     error?: string;
     loading?: boolean;
     editMode?: boolean;
     editTitle?: string;
+    sectionId?: string;
+    form?: ActionData;
   }>();
 
-  function handleSubmit() {
-    if (editMode) {
-      if (onEdit) onEdit();
+  let formRef = $state<HTMLFormElement>();
+  let title = $state("");
+
+  $effect(() => {
+    if (open) {
+      title = editMode ? editTitle : "";
+      if (form) {
+        form.success = true;
+        form.message = undefined;
+      }
     } else {
-      if (onAdd) onAdd();
+      title = "";
+      if (formRef) {
+        formRef.reset();
+      }
     }
-  }
+  });
+
+  $effect(() => {
+    if (editMode) {
+      editTitle = title;
+    }
+  });
 
   function handleClose() {
     open = false;
@@ -41,9 +60,28 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-  <div class="modal-backdrop" role="button" tabindex="0" onclick={handleClose} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClose(); }}>
-    <div class="modal-content" role="dialog" tabindex="0" onclick={(e) => e.stopPropagation()} >
-      <button class="modal-close-btn" type="button" aria-label="关闭" onclick={handleClose}>
+  <div
+    class="modal-backdrop"
+    role="button"
+    tabindex="0"
+    onclick={handleClose}
+    onkeydown={(e) => {
+      if (e.key === "Enter" || e.key === " ") handleClose();
+    }}
+  >
+    <div
+      class="modal-content"
+      role="dialog"
+      tabindex="0"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+    >
+      <button
+        class="modal-close-btn"
+        type="button"
+        aria-label="关闭"
+        onclick={handleClose}
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -65,31 +103,39 @@
           {editMode ? "修改章节标题" : "为你的课程添加一个新的章节"}
         </p>
       </div>
-      <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+      <form
+        method="POST"
+        action={editMode ? "?/updateSection" : "?/createSection"}
+        bind:this={formRef}
+        use:enhance={() => {
+          loading = true;
+          return async ({ result, update }) => {
+            if (result.type === "redirect") {
+              handleClose();
+              if (!editMode && onAdd) onAdd();
+              await update();
+            }
+            loading = false;
+          };
+        }}
+      >
         <div class="form-group">
           <label for="title">章节标题</label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            placeholder="例如：第一章：入门介绍"
+            required
+            bind:value={title}
+            autofocus
+          />
           {#if editMode}
-            <input
-              type="text"
-              id="title"
-              placeholder="例如：第一章：入门介绍"
-              required
-              bind:value={editTitle}
-              autofocus
-            />
-          {:else}
-            <input
-              type="text"
-              id="title"
-              placeholder="例如：第一章：入门介绍"
-              required
-              bind:value={newTitle}
-              autofocus
-            />
+            <input type="hidden" name="sectionId" value={sectionId} />
           {/if}
         </div>
-        {#if error}
-          <p class="error-message">{error}</p>
+        {#if (editMode && error) || (!editMode && form?.success === false)}
+          <p class="error-message">{editMode ? error : form?.message}</p>
         {/if}
         <div class="form-actions">
           <button type="button" class="btn-secondary" onclick={handleClose}

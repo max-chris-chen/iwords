@@ -1,7 +1,15 @@
 import { getDb } from "$lib/mongodb";
-import type { Course } from "$lib/models/course";
+import type { Course, Lesson, Section } from "$lib/models/course";
 import type { ObjectId } from "mongodb";
 import { CourseStatus } from "$lib/models/course";
+
+interface SectionWithLessons extends Section {
+  lessons: Lesson[];
+}
+
+interface CourseWithDetails extends Course {
+  sections: SectionWithLessons[];
+}
 
 export async function getCoursesByUserId(userId: ObjectId): Promise<Course[]> {
   const db = await getDb();
@@ -36,7 +44,7 @@ export async function findCourseById(courseId: ObjectId, userId: ObjectId) {
 export async function getCourseWithDetails(
   courseId: ObjectId,
   userId: ObjectId,
-) {
+): Promise<CourseWithDetails | null> {
   const db = await getDb();
   const course = await db
     .collection("courses")
@@ -67,7 +75,10 @@ export async function getCourseWithDetails(
     ),
   }));
 
-  return { ...course, sections: sectionsWithLessons };
+  return {
+    ...course,
+    sections: sectionsWithLessons,
+  } as unknown as CourseWithDetails;
 }
 
 export async function updateCourse(

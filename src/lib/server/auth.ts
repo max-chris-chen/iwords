@@ -10,11 +10,12 @@ import { error } from "@sveltejs/kit";
  * @throws {HttpError} - Throws a 401 error if authentication fails.
  */
 export function getAuthenticatedUserId(locals: App.Locals): ObjectId {
-  if (!locals.user?.userId) {
+  const userId = locals.user?.userId;
+  if (!userId) {
     throw error(401, "Unauthorized");
   }
   try {
-    return new ObjectId(locals.user.userId);
+    return new ObjectId(userId);
   } catch {
     // This handles cases where userId from JWT is not a valid ObjectId string.
     throw error(401, "Invalid user identity in token");
